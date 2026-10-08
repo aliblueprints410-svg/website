@@ -1,25 +1,24 @@
-const CACHE_NAME = 'space-cache-v1';
+const CACHE_NAME = 'space-cache-v2';
 const ASSETS = [
-  'index.html',
-  'apps.html',
-  'app.html',
-  'posts.html',
-  'post.html',
-  'about.html',
-  'contact.html',
-  'site.css',
-  'i18n.js',
-  'site.js',
-  'data.js',
-  'page-data.js',
-  'content-pages.js'
+  '/',
+  '/index.html',
+  '/apps.html',
+  '/app.html',
+  '/posts.html',
+  '/post.html',
+  '/about.html',
+  '/contact.html',
+  '/site.css',
+  '/i18n.js',
+  '/site.js',
+  '/data.js',
+  '/page-data.js',
+  '/content-pages.js'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS).catch(() => {});
-    })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).catch(() => {})
   );
   self.skipWaiting();
 });
@@ -35,9 +34,25 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request).catch(() => cached);
-    })
+    fetch(event.request)
+      .then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone)).catch(() => {});
+        }
+        return response;
+      })
+      .catch(async () => {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        if (event.request.mode === 'navigate') {
+          return caches.match('/index.html') || caches.match('/');
+        }
+        return new Response('Network error occurred', { status: 503, statusText: 'Service Unavailable' });
+      })
   );
 });
