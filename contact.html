@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f2"><script>try{if(localStorage.getItem("space-theme")==="dark")document.documentElement.classList.add("dark")}catch(error){}</script>
+  <title>تواصل — مساحة</title>
+  <meta name="description" content="تواصل مع مساحة عبر نموذج الرسائل ومعلومات التواصل والحسابات الاجتماعية.">
+  <meta property="og:title" content="تواصل — مساحة">
+  <meta property="og:description" content="تواصل مع مساحة عبر نموذج الرسائل ومعلومات التواصل والحسابات الاجتماعية.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ar_AR">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2064%2064%27%3E%3Crect%20width=%2764%27%20height=%2764%27%20rx=%2716%27%20fill=%27%23287452%27/%3E%3Ctext%20x=%2732%27%20y=%2745%27%20text-anchor=%27middle%27%20font-family=%27Arial%2Csans-serif%27%20font-size=%2740%27%20font-weight=%27700%27%20fill=%27white%27%3E%D9%85%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="supabase-config.js" defer></script>
+  <script src="supabase-client.js" defer></script>
+  <script src="i18n.js" defer></script>
+  <script src="data.js" defer></script>
+  <script src="site.js" defer></script>
+  <script src="content-pages.js" defer></script>
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="container page-main">
+    <header class="page-heading">
+      <span class="overline" data-i18n="home.social_tag">تواصل</span>
+      <h1 data-i18n="contact.title">أرسل رسالة</h1>
+      <p data-i18n="contact.desc">أرسل رسالة إلى مساحة عبر النموذج.</p>
+    </header>
+    <div class="contact-layout">
+      <form class="content-panel contact-form" id="contactForm" novalidate>
+        <div class="notice contact-disclaimer"><span aria-hidden="true">i</span><p data-i18n="contact.desc">تُرسل الرسالة إلى قاعدة بيانات الموقع لمراجعتها.</p></div>
+        <div class="form-field">
+          <label for="name" data-i18n="contact.name">الاسم</label>
+          <input id="name" name="name" type="text" autocomplete="name" required aria-describedby="error-name">
+          <small id="error-name" class="field-error" hidden></small>
+        </div>
+        <div class="form-field">
+          <label for="contactMethod" data-i18n="contact.contact_field">وسيلة الاتصال</label>
+          <input id="contactMethod" name="contactMethod" type="text" autocomplete="off" required aria-describedby="error-contactMethod">
+          <small id="error-contactMethod" class="field-error" hidden></small>
+        </div>
+        <div class="form-field">
+          <label for="subject" data-i18n="contact.subject">الموضوع</label>
+          <input id="subject" name="subject" type="text" required aria-describedby="error-subject">
+          <small id="error-subject" class="field-error" hidden></small>
+        </div>
+        <div class="form-field">
+          <label for="message" data-i18n="contact.message">الرسالة</label>
+          <textarea id="message" name="message" rows="5" required aria-describedby="error-message"></textarea>
+          <small id="error-message" class="field-error" hidden></small>
+        </div>
+        <div class="notice form-status" id="contactFormStatus" role="status" aria-live="polite" hidden></div>
+        <button class="button primary" type="submit" data-i18n="contact.send">إرسال الرسالة</button>
+      </form>
+      <section class="content-panel contact-info-panel">
+        <span class="overline" data-i18n="about.social_title">معلومات التواصل</span>
+        <h2 data-i18n="about.social_title">حسابات ووسائل التواصل</h2>
+        <div id="contactInfo" class="contact-info" aria-live="polite">
+          <p id="siteInfoLoading" role="status">جارٍ تحميل معلومات التواصل...</p>
+        </div>
+        <p class="empty-state" id="siteInfoError" hidden>تعذّر تحميل معلومات التواصل.</p>
+      </section>
+    </div>
+  </main>
+  <div id="site-footer"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f6f2">
+  <meta name="robots" content="noindex, nofollow">
+  <script>try{if(localStorage.getItem("space-theme")==="dark")document.documentElement.classList.add("dark")}catch(error){}</script>
+  <title>إدارة مساحة — مساحة</title>
+  <meta name="description" content="لوحة خاصة لإدارة رسائل ومحتوى مساحة.">
+  <meta property="og:title" content="إدارة مساحة — مساحة">
+  <meta property="og:description" content="لوحة خاصة لإدارة رسائل ومحتوى مساحة.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ar_AR">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2064%2064%27%3E%3Crect%20width=%2764%27%20height=%2764%27%20rx=%2716%27%20fill=%27%23287452%27/%3E%3Ctext%20x=%2732%27%20y=%2745%27%20text-anchor=%27middle%27%20font-family=%27Arial%2Csans-serif%27%20font-size=%2740%27%20font-weight=%27700%27%20fill=%27white%27%3E%D9%85%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+  <script src="supabase-config.js" defer></script>
+  <script src="supabase-client.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js" defer></script>
+  <script src="i18n.js" defer></script>
+  <script src="site.js" defer></script>
+  <script src="owner.js" defer></script>
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="container page-main">
+    <header class="page-heading owner-page-heading">
+      <div>
+        <span class="overline">مساحة خاصة</span>
+        <h1>إدارة الموقع</h1>
+      </div>
+      <div class="button-row">
+        <a class="button secondary" href="index.html">عرض الموقع</a>
+        <button class="button secondary" id="ownerLogout" type="button">تسجيل الخروج</button>
+      </div>
+    </header>
+    <p class="empty-state" id="ownerLoading" role="status">جارٍ التحقق من صلاحية المالك...</p>
+    <section class="content-panel" id="ownerDenied" hidden>
+      <h2>لا تتوفر صلاحية الإدارة</h2>
+      <p id="ownerDeniedMessage">سجّل الدخول بحساب المالك للمتابعة.</p>
+      <a class="button primary" href="owner-login.html">الانتقال إلى تسجيل الدخول</a>
+    </section>
+    <section id="ownerWorkspace" hidden>
+      <nav class="admin-tabs" aria-label="أقسام الإدارة">
+        <button class="filter active" data-owner-tab="messages" type="button" aria-pressed="true">الرسائل</button>
+        <button class="filter" data-owner-tab="apps" type="button" aria-pressed="false">التطبيقات</button>
+        <button class="filter" data-owner-tab="posts" type="button" aria-pressed="false">المنشورات</button>
+        <button class="filter" data-owner-tab="releases" type="button" aria-pressed="false">الإصدارات</button>
+        <button class="filter" data-owner-tab="files" type="button" aria-pressed="false">الملفات</button>
+      </nav>
+      <section class="owner-panel content-panel" id="ownerMessagesPanel">
+        <div class="admin-panel-heading">
+          <div><span class="overline">صندوق الوارد</span><h2>رسائل التواصل</h2></div>
+          <button class="button secondary" id="refreshMessages" type="button">تحديث</button>
+        </div>
+        <p class="owner-status" id="messageStatus" role="status" aria-live="polite"></p>
+        <div class="owner-message-list" id="ownerMessageList" aria-live="polite"></div>
+        <div class="owner-pagination" id="messagePagination" hidden>
+          <button class="button secondary" id="previousMessages" type="button">السابق</button>
+          <span id="messagePageLabel" aria-live="polite"></span>
+          <button class="button secondary" id="nextMessages" type="button">التالي</button>
+        </div>
+      </section>
+      <section class="owner-panel content-panel" id="ownerRecordsPanel" hidden>
+        <div class="admin-panel-heading">
+          <div><span class="overline">إدارة السجلات</span><h2 id="recordPanelTitle">التطبيقات</h2></div>
+          <button class="button secondary" id="newRecord" type="button">سجل جديد</button>
+        </div>
+        <p class="owner-status" id="recordStatus" role="status" aria-live="polite"></p>
+        <div class="owner-record-layout">
+          <div class="owner-record-list" id="ownerRecordList" aria-label="السجلات"></div>
+          <form class="owner-json-form" id="ownerRecordForm" novalidate>
+            <label for="recordJson">بيانات السجل بصيغة JSON</label>
+            <textarea id="recordJson" rows="18" spellcheck="false" aria-describedby="recordJsonHelp"></textarea>
+            <small id="recordJsonHelp">عند إنشاء سجل جديد، اترك حقل id فارغاً ليولّده النظام إن كان مطلوباً.</small>
+            <div class="button-row">
+              <button class="button primary" id="saveRecord" type="submit">حفظ</button>
+              <button class="button secondary" id="deleteRecord" type="button" hidden>حذف السجل</button>
+            </div>
+          </form>
+        </div>
+        <div class="owner-pagination" id="recordPagination" hidden>
+          <button class="button secondary" id="previousRecords" type="button">السابق</button>
+          <span id="recordPageLabel" aria-live="polite"></span>
+          <button class="button secondary" id="nextRecords" type="button">التالي</button>
+        </div>
+      </section>
+      <section class="owner-panel content-panel" id="ownerFilesPanel" hidden>
+        <div class="admin-panel-heading"><div><span class="overline">تخزين الموقع</span><h2>رفع ملف عام</h2></div></div>
+        <p>ارفع ملفات الإصدارات أو لقطات الشاشة. الرابط الناتج متاح للزوار.</p>
+        <form class="owner-upload-form" id="ownerUploadForm">
+          <div class="form-field"><label for="uploadAppSlug">معرّف التطبيق</label><input id="uploadAppSlug" name="appSlug" required pattern="[A-Za-z0-9_-]+" autocomplete="off"></div>
+          <div class="form-field"><label for="uploadAssetType">نوع الملف</label><select id="uploadAssetType" name="assetType"><option value="releases">إصدار للتنزيل</option><option value="screenshots">لقطة شاشة</option></select></div>
+          <div class="form-field"><label for="uploadFile">الملف</label><input id="uploadFile" name="file" type="file" required></div>
+          <div class="button-row"><button class="button primary" id="uploadAssetButton" type="submit">رفع الملف</button><button class="button secondary" id="copyAssetUrl" type="button" disabled>نسخ الرابط</button></div>
+          <progress id="uploadProgress" max="100" value="0" hidden aria-label="تقدّم رفع الملف"></progress>
+          <label class="form-field"><span>الرابط العام</span><input id="uploadedAssetUrl" type="url" readonly aria-live="polite"></label>
+          <p class="owner-status" id="uploadStatus" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+    </section>
+  </main>
+  <div id="site-footer"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
