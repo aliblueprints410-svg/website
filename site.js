@@ -99,9 +99,8 @@
   if (footer) {
     footer.innerHTML = `
       <footer class="site-footer">
-        <div class="container footer-inner">
+        <div class="container footer-inner" style="justify-content:center;text-align:center;">
           <span>© 2026 مساحة · <span data-i18n="footer.rights">${typeof I18N !== 'undefined' ? I18N.t('footer.rights', 'جميع الحقوق محفوظة.') : 'جميع الحقوق محفوظة.'}</span></span>
-          <a class="inline-link" href="owner-login.html" data-i18n="footer.owner_link" style="font-size:0.75rem;">${typeof I18N !== 'undefined' ? I18N.t('footer.owner_link', 'بوابة الإدارة') : 'بوابة الإدارة'} 🔒</a>
         </div>
       </footer>
     `;

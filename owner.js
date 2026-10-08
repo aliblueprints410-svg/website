@@ -64,7 +64,7 @@
       .order('created_at', { ascending: false })
       .range(messagesPage * pageSize, messagesPage * pageSize + pageSize - 1);
     if (error) {
-      status(messageStatus, 'تعذّر تحميل الرسائل. تحقق من سياسات القراءة وصلاحية المالك.', true);
+      status(messageStatus, `تعذّر تحميل الرسائل: ${error.message || 'تحقق من الصلاحيات'}`, true);
       return;
     }
     messageList.replaceChildren();
@@ -144,7 +144,7 @@
     const { data, error, count } = await backend.from(activeTable).select('*', { count: 'exact' }).range(recordsPage * pageSize, recordsPage * pageSize + pageSize - 1);
     if (error) {
       recordList.replaceChildren();
-      status(recordStatus, 'تعذّر تحميل السجلات. تحقق من صلاحيات المالك.', true);
+      status(recordStatus, `تعذّر تحميل السجلات: ${error.message || 'تحقق من الصلاحيات'}`, true);
       return;
     }
     rows = Array.isArray(data) ? data : [];
