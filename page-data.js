@@ -364,12 +364,32 @@
       return card;
     };
 
+    const fetchAppReviews = async () => {
+      if (!reviewsList || !globalThis.SpaceBackend?.client) return;
+      try {
+        const { data, error } = await globalThis.SpaceBackend.client
+          .from('app_reviews')
+          .select('*')
+          .eq('app_id', app.id)
+          .order('created_at', { ascending: false });
+        if (!error && Array.isArray(data) && data.length > 0) {
+          reviewsList.replaceChildren(...data.map(r => renderReviewCard({
+            name: r.user_name || 'زائر',
+            stars: r.rating || 5,
+            date: r.created_at ? formatDate(r.created_at) : 'مؤخراً',
+            text: r.review_text
+          })));
+        }
+      } catch (err) {}
+    };
+
     if (reviewsList) {
       reviewsList.replaceChildren(...sampleReviews.map(renderReviewCard));
+      fetchAppReviews();
     }
 
     if (reviewForm) {
-      reviewForm.onsubmit = (e) => {
+      reviewForm.onsubmit = async (e) => {
         e.preventDefault();
         const commentInput = byId('reviewComment');
         const text = commentInput?.value.trim();
@@ -398,6 +418,17 @@
         reviewsList?.prepend(renderReviewCard(newReview));
         commentInput.value = '';
         notify('شكراً لتقييمك! أُضيفت مراجعتك بنجاح.');
+
+        if (globalThis.SpaceBackend?.client && app?.id) {
+          try {
+            await globalThis.SpaceBackend.client.from('app_reviews').insert({
+              app_id: app.id,
+              user_name: authorName,
+              rating: newReview.stars,
+              review_text: text
+            });
+          } catch(err) {}
+        }
       };
     }
 
