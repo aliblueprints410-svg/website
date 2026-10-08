@@ -1031,9 +1031,8 @@
           excerpt,
           status: 'published',
           published_at: new Date().toISOString(),
-          is_demo: false,
-          likes_count: 0,
-          comments_count: 0
+          tags: ['تحديثات'],
+          is_demo: false
         };
 
         const { data, error } = await client.from('posts').insert(newRecord).select().single();
