@@ -632,10 +632,78 @@
     }
   }
 
+  function setupOwnerPostForm() {
+    const postForm = byId('postForm');
+    if (!postForm) return;
+
+    postForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      const titleInput = byId('postTitleInput');
+      const contentInput = byId('postInput');
+      const submitBtn = byId('postPublishBtn');
+      const title = titleInput?.value.trim();
+      const body = contentInput?.value.trim();
+
+      if (!title || !body) {
+        notify('يرجى كتابة عنوان وتفاصيل التدوينة أولاً.');
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'جارٍ النشر في السحابة... ⏳';
+      }
+
+      try {
+        const client = globalThis.SpaceBackend?.client;
+        if (!client) throw new Error('الاتصال بخدمة البيانات غير متوفر حالياً.');
+
+        const slug = 'post-' + Date.now();
+        const excerpt = body.length > 150 ? body.slice(0, 150) + '...' : body;
+        const newRecord = {
+          title,
+          slug,
+          body,
+          excerpt,
+          status: 'published',
+          published_at: new Date().toISOString(),
+          is_demo: false,
+          likes_count: 0,
+          comments_count: 0
+        };
+
+        const { data, error } = await client.from('posts').insert(newRecord).select().single();
+        if (error) throw error;
+
+        notify('🎉 تم نشر تدوينتك بنجاح وظهرت في الموقع!');
+        titleInput.value = '';
+        contentInput.value = '';
+
+        const feed = byId('feed');
+        if (feed) {
+          setHidden('postsEmpty', true);
+          setHidden('postsLoading', true);
+          const postToRender = data || newRecord;
+          const card = renderPost(postToRender, 0, 'علي محمد');
+          feed.prepend(card);
+        }
+      } catch (err) {
+        notify(`تعذّر نشر التدوينة: ${err.message || 'حدث خطأ'}`);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'نشر التدوينة الآن 🚀';
+        }
+      }
+    });
+  }
+
   loadSiteStats();
   loadFeaturedApps();
   loadLatestPost();
   loadAppsPage();
   loadAppDetail();
   loadPostsPage();
+  setupOwnerPostForm();
 })();
+

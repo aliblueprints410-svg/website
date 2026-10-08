@@ -361,3 +361,26 @@ html[dir="ltr"] .latest-arrow {
   color: var(--muted);
   font-size: 0.72rem;
 }
+
+/* --- Owner-Exclusive Styling --- */
+.user-btn.owner-active {
+  border: 1.5px solid var(--green) !important;
+  background: rgba(40, 116, 82, 0.08) !important;
+  color: var(--green) !important;
+  font-weight: 700;
+}
+.comment-entry.owner-comment {
+  border-inline-start: 3px solid var(--green);
+  padding-inline-start: 10px;
+  background: rgba(40, 116, 82, 0.06);
+  border-radius: 6px;
+  padding-block: 4px;
+}
+.owner-pill {
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.owner-pill:hover {
+  background: rgba(40, 116, 82, 0.12) !important;
+  transform: translateY(-1px);
+}
+

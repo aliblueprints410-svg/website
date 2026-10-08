@@ -179,6 +179,33 @@
 
   // --- Visitor Authentication & Modal ---
   let currentUser = null;
+  let isOwner = false;
+
+  async function evaluateOwnerStatus() {
+    if (!currentUser) {
+      isOwner = false;
+      window.isOwner = false;
+      return;
+    }
+    const email = currentUser.email?.toLowerCase();
+    if (email === 'aliblueprints410@gmail.com') {
+      isOwner = true;
+      window.isOwner = true;
+      return;
+    }
+    const client = globalThis.SpaceBackend?.client;
+    if (client) {
+      try {
+        const { data, error } = await client.rpc('is_owner');
+        isOwner = !error && data === true;
+      } catch (e) {
+        isOwner = false;
+      }
+    } else {
+      isOwner = false;
+    }
+    window.isOwner = isOwner;
+  }
 
   async function checkUserSession() {
     const client = globalThis.SpaceBackend?.client;
@@ -186,11 +213,13 @@
     try {
       const { data } = await client.auth.getSession();
       currentUser = data?.session?.user || null;
+      await evaluateOwnerStatus();
       updateAuthUI();
     } catch (e) {}
 
-    client.auth.onAuthStateChange((event, session) => {
+    client.auth.onAuthStateChange(async (event, session) => {
       currentUser = session?.user || null;
+      await evaluateOwnerStatus();
       updateAuthUI();
     });
   }
@@ -199,24 +228,107 @@
     const btn = document.getElementById('userAuthBtn');
     const badge = document.getElementById('userBadge');
     const label = document.getElementById('userAuthLabel');
-    if (!btn || !label) return;
+    const navLinks = document.getElementById('navLinks');
+    let ownerAdminLink = document.getElementById('ownerAdminNavItem');
 
-    if (currentUser) {
+    if (currentUser && isOwner) {
+      if (badge) {
+        badge.textContent = '👑';
+        badge.style.display = 'grid';
+        badge.style.background = 'linear-gradient(135deg, #10b981, #047857)';
+        badge.style.color = '#fff';
+      }
+      if (label) {
+        label.textContent = 'علي محمد (المالك)';
+        label.removeAttribute('data-i18n');
+      }
+      if (btn) {
+        btn.title = 'حساب المالك — انقر لتسجيل الخروج';
+        btn.classList.add('owner-active');
+      }
+
+      // Add Admin Link to Navigation if not present
+      if (!ownerAdminLink && navLinks) {
+        ownerAdminLink = document.createElement('a');
+        ownerAdminLink.id = 'ownerAdminNavItem';
+        ownerAdminLink.href = 'owner.html';
+        ownerAdminLink.className = 'button secondary owner-pill';
+        ownerAdminLink.style.cssText = 'padding:6px 12px;font-size:0.8rem;border:1px solid var(--green);color:var(--green);font-weight:600;display:inline-flex;align-items:center;gap:6px;border-radius:20px;';
+        ownerAdminLink.innerHTML = '<span>⚙️</span><span>لوحة الإدارة</span>';
+        navLinks.appendChild(ownerAdminLink);
+      }
+
+      // Show post composer if on posts.html
+      const postForm = document.getElementById('postForm');
+      if (postForm) {
+        postForm.hidden = false;
+        postForm.style.display = 'block';
+      }
+
+      // Show owner add app banner if on apps.html
+      const appsHeader = document.querySelector('.catalog-head') || document.querySelector('.page-heading');
+      if (appsHeader && !document.getElementById('ownerAppActionBanner') && location.pathname.includes('apps.html')) {
+        const banner = document.createElement('div');
+        banner.id = 'ownerAppActionBanner';
+        banner.style.cssText = 'display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:var(--surface);border:2px solid var(--green);border-radius:14px;padding:14px 20px;margin-top:16px;box-shadow:0 4px 12px rgba(0,0,0,0.05);';
+        banner.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.4rem;">👑</span>
+            <div>
+              <strong style="color:var(--green);font-size:0.95rem;display:block;">وضع المالك مفعّل</strong>
+              <small style="color:var(--muted);font-size:0.8rem;">يمكنك رفع تطبيقات جديدة، تحديث ملفات APK/EXE، أو تعديل البيانات.</small>
+            </div>
+          </div>
+          <a class="button primary" href="owner.html" style="padding:8px 16px;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;">
+            <span>🚀</span><span>إدارة ورفع التطبيقات</span>
+          </a>
+        `;
+        appsHeader.insertAdjacentElement('afterend', banner);
+      }
+    } else if (currentUser) {
       const name = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'عضو';
       const initial = name.charAt(0).toUpperCase();
       if (badge) {
         badge.textContent = initial;
         badge.style.display = 'grid';
+        badge.style.background = '';
+        badge.style.color = '';
       }
-      label.textContent = name;
-      label.removeAttribute('data-i18n');
-      btn.title = 'انقر لتسجيل الخروج';
+      if (label) {
+        label.textContent = name;
+        label.removeAttribute('data-i18n');
+      }
+      if (btn) {
+        btn.title = 'انقر لتسجيل الخروج';
+        btn.classList.remove('owner-active');
+      }
+
+      if (ownerAdminLink) ownerAdminLink.remove();
+      const postForm = document.getElementById('postForm');
+      if (postForm) { postForm.hidden = true; postForm.style.display = 'none'; }
+      const banner = document.getElementById('ownerAppActionBanner');
+      if (banner) banner.remove();
     } else {
       if (badge) badge.style.display = 'none';
-      label.textContent = typeof I18N !== 'undefined' ? I18N.t('nav.signin', 'تسجيل الدخول') : 'تسجيل الدخول';
-      label.setAttribute('data-i18n', 'nav.signin');
-      btn.title = '';
+      if (label) {
+        label.textContent = typeof I18N !== 'undefined' ? I18N.t('nav.signin', 'تسجيل الدخول') : 'تسجيل الدخول';
+        label.setAttribute('data-i18n', 'nav.signin');
+      }
+      if (btn) {
+        btn.title = '';
+        btn.classList.remove('owner-active');
+      }
+
+      if (ownerAdminLink) ownerAdminLink.remove();
+      const postForm = document.getElementById('postForm');
+      if (postForm) { postForm.hidden = true; postForm.style.display = 'none'; }
+      const banner = document.getElementById('ownerAppActionBanner');
+      if (banner) banner.remove();
     }
+
+    document.dispatchEvent(new CustomEvent('site:ownerStateChanged', {
+      detail: { isOwner: Boolean(currentUser && isOwner), user: currentUser }
+    }));
   }
 
   // Inject Visitor Auth Modal into body if not present
@@ -441,27 +553,39 @@
     }
   });
 
-  feed?.addEventListener('submit', event => {
+  feed?.addEventListener('submit', async event => {
     if (!event.target.matches('.comment-form')) return;
     event.preventDefault();
     const input = event.target.querySelector('input');
     const value = input.value.trim();
     if (!value) return;
 
-    // Check visitor auth
-    const authorName = currentUser
-      ? (currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0])
-      : 'زائر';
+    if (!currentUser) {
+      toast('سجّل دخولك لتتمكن من كتابة تعليق.');
+      openAuthModal();
+      return;
+    }
 
     const card = event.target.closest('.post-card');
+    const isOwnerUser = Boolean(window.isOwner);
+    const authorName = isOwnerUser
+      ? '👑 علي محمد (المالك)'
+      : (currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'عضو');
+
     const comment = document.createElement('div');
-    comment.className = 'comment-entry';
-    comment.textContent = `${authorName}: ${value}`;
-    card.querySelector('.comments').append(comment);
+    comment.className = 'comment-entry' + (isOwnerUser ? ' owner-comment' : '');
+    const authorSpan = document.createElement('strong');
+    authorSpan.textContent = `${authorName}: `;
+    if (isOwnerUser) authorSpan.style.color = 'var(--green)';
+    const textSpan = document.createElement('span');
+    textSpan.textContent = value;
+    comment.append(authorSpan, textSpan);
+    card.querySelector('.comments')?.append(comment);
+
     const count = card.querySelector('.comment-count');
     if (count) count.textContent = Number(count.textContent || 0) + 1;
     input.value = '';
-    toast('أُضيف تعليقك في هذه المعاينة.');
+    toast(isOwnerUser ? 'تم نشر رد المالك بنجاح! 👑' : 'تمت إضافة تعليقك.');
   });
 
   // Check user session on load

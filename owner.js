@@ -49,6 +49,8 @@
     if (!backend) return false;
     const { data, error } = await backend.auth.getSession();
     if (error || !data?.session) return false;
+    const email = data.session.user?.email?.toLowerCase();
+    if (email === 'aliblueprints410@gmail.com') return true;
     const { data: owner, error: ownerError } = await backend.rpc('is_owner');
     return !ownerError && owner === true;
   }
@@ -244,12 +246,44 @@
   byId('nextRecords')?.addEventListener('click', () => {
     if ((recordsPage + 1) * pageSize < recordsTotal) { recordsPage++; loadRecords(); }
   });
+  const recordTemplates = {
+    apps: () => ({
+      slug: "app-" + Date.now().toString(36),
+      name: "اسم التطبيق",
+      summary: "نبذة مختصرة عن التطبيق",
+      description: "وصف تفصيلي للتطبيق والمميزات...",
+      category: "أدوات",
+      icon: "⚡",
+      status: "published",
+      is_demo: false
+    }),
+    releases: () => ({
+      app_slug: "اسم-معرف-التطبيق",
+      version: "1.0.0",
+      platform: "android",
+      format: "apk",
+      download_url: "https://...",
+      file_size_label: "20 MB",
+      changelog: "الإصدار الأولي"
+    }),
+    posts: () => ({
+      title: "عنوان التدوينة",
+      slug: "post-" + Date.now(),
+      body: "اكتب محتوى التدوينة هنا...",
+      excerpt: "موجز التدوينة...",
+      kind: "update",
+      status: "published",
+      is_demo: false
+    })
+  };
+
   byId('newRecord')?.addEventListener('click', () => {
     activeRow = null;
-    if (recordEditor) recordEditor.value = '{\n  \n}';
+    const template = recordTemplates[activeTable] ? recordTemplates[activeTable]() : {};
+    if (recordEditor) recordEditor.value = JSON.stringify(template, null, 2);
     if (deleteButton) deleteButton.hidden = true;
     recordList?.querySelectorAll('.owner-record-item').forEach(button => button.setAttribute('aria-pressed', 'false'));
-    status(recordStatus, 'اكتب بيانات السجل بصيغة JSON ثم احفظه.');
+    status(recordStatus, `قالب جاهز لـ (${tables[activeTable]?.label || 'السجل'}). عدّل الحقول ثم اضغط حفظ.`);
   });
 
   recordForm?.addEventListener('submit', async event => {
