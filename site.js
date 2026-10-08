@@ -17,8 +17,7 @@
     ['index.html', 'nav.home', 'الرئيسية'],
     ['apps.html', 'nav.apps', 'التطبيقات'],
     ['posts.html', 'nav.posts', 'المنشورات'],
-    ['about.html', 'nav.about', 'عنّي'],
-    ['contact.html', 'nav.contact', 'تواصل']
+    ['about.html', 'nav.about', 'عنّي']
   ];
 
   const header = document.getElementById('site-header');
@@ -229,6 +228,9 @@
     const label = document.getElementById('userAuthLabel');
     const navLinks = document.getElementById('navLinks');
     let ownerAdminLink = document.getElementById('ownerAdminNavItem');
+    if (ownerAdminLink) ownerAdminLink.remove();
+    const oldBanner = document.getElementById('ownerAppActionBanner');
+    if (oldBanner) oldBanner.remove();
 
     if (currentUser && isOwner) {
       if (badge) {
@@ -238,23 +240,12 @@
         badge.style.color = '#fff';
       }
       if (label) {
-        label.textContent = 'علي محمد (المالك)';
+        label.textContent = 'علي محمد (المطور)';
         label.removeAttribute('data-i18n');
       }
       if (btn) {
-        btn.title = 'حساب المالك — انقر لتسجيل الخروج';
+        btn.title = 'حساب المطور — انقر لتسجيل الخروج';
         btn.classList.add('owner-active');
-      }
-
-      // Add Admin Link to Navigation if not present
-      if (!ownerAdminLink && navLinks) {
-        ownerAdminLink = document.createElement('a');
-        ownerAdminLink.id = 'ownerAdminNavItem';
-        ownerAdminLink.href = 'owner.html';
-        ownerAdminLink.className = 'button secondary owner-pill';
-        ownerAdminLink.style.cssText = 'padding:6px 12px;font-size:0.8rem;border:1px solid var(--green);color:var(--green);font-weight:600;display:inline-flex;align-items:center;gap:6px;border-radius:20px;';
-        ownerAdminLink.innerHTML = '<span>⚙️</span><span>لوحة الإدارة</span>';
-        navLinks.appendChild(ownerAdminLink);
       }
 
       // Show post composer if on posts.html
@@ -262,27 +253,6 @@
       if (postForm) {
         postForm.hidden = false;
         postForm.style.display = 'block';
-      }
-
-      // Show owner add app banner if on apps.html
-      const appsHeader = document.querySelector('.catalog-head') || document.querySelector('.page-heading');
-      if (appsHeader && !document.getElementById('ownerAppActionBanner') && location.pathname.includes('apps.html')) {
-        const banner = document.createElement('div');
-        banner.id = 'ownerAppActionBanner';
-        banner.style.cssText = 'display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:var(--surface);border:2px solid var(--green);border-radius:14px;padding:14px 20px;margin-top:16px;box-shadow:0 4px 12px rgba(0,0,0,0.05);';
-        banner.innerHTML = `
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:1.4rem;">👑</span>
-            <div>
-              <strong style="color:var(--green);font-size:0.95rem;display:block;">وضع المالك مفعّل</strong>
-              <small style="color:var(--muted);font-size:0.8rem;">يمكنك رفع تطبيقات جديدة، تحديث ملفات APK/EXE، أو تعديل البيانات.</small>
-            </div>
-          </div>
-          <a class="button primary" href="owner.html" style="padding:8px 16px;font-size:0.85rem;display:inline-flex;align-items:center;gap:6px;">
-            <span>🚀</span><span>إدارة ورفع التطبيقات</span>
-          </a>
-        `;
-        appsHeader.insertAdjacentElement('afterend', banner);
       }
     } else if (currentUser) {
       const name = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'عضو';

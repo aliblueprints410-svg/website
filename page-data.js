@@ -52,6 +52,197 @@
     return value >= 1000 ? `${(value / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(value);
   };
 
+  function openAppEditorModal(existingApp = null) {
+    let overlay = byId('appEditModalOverlay');
+    if (!overlay) {
+      overlay = make('div', 'modal-overlay');
+      overlay.id = 'appEditModalOverlay';
+      overlay.innerHTML = `
+        <div class="modal-dialog" style="max-width:540px;width:92%;" role="dialog">
+          <div class="modal-header">
+            <h3 id="appModalHeading">إضافة تطبيق جديد 🚀</h3>
+            <button class="modal-close" id="appModalClose">✕</button>
+          </div>
+          <form id="appModalForm" class="contact-form" style="margin-top:14px;">
+            <div class="form-field">
+              <label>اسم التطبيق *</label>
+              <input type="text" id="appFormName" required placeholder="مثال: تطبيق معاملتي">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="form-field">
+                <label>معرّف الرابط (Slug) *</label>
+                <input type="text" id="appFormSlug" required placeholder="muamalati" dir="ltr">
+              </div>
+              <div class="form-field">
+                <label>أيقونة التطبيق (رمز أو إيموجي)</label>
+                <input type="text" id="appFormIcon" placeholder="📄 أو ⚡">
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="form-field">
+                <label>التصنيف</label>
+                <input type="text" id="appFormCategory" placeholder="أدوات / تصميم...">
+              </div>
+              <div class="form-field">
+                <label>المنصة الأساسية</label>
+                <select id="appFormPlatform" style="padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface-alt);color:var(--text);font:inherit;">
+                  <option value="android">Android (APK)</option>
+                  <option value="windows">Windows (EXE)</option>
+                  <option value="web">Web / PWA</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>نبذة سريعة *</label>
+              <input type="text" id="appFormSummary" required placeholder="نبذة مختصرة تظهر في بطاقة التطبيق...">
+            </div>
+            <div class="form-field">
+              <label>الوصف المفصل والمميزات</label>
+              <textarea id="appFormDesc" rows="3" placeholder="اكتب تفاصيل ومميزات التطبيق هنا..."></textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;">
+              <div class="form-field">
+                <label>رقم الإصدار</label>
+                <input type="text" id="appFormVersion" placeholder="1.0.0" dir="ltr">
+              </div>
+              <div class="form-field">
+                <label>رابط التحميل المباشر أو الويب</label>
+                <input type="url" id="appFormDownloadUrl" placeholder="https://..." dir="ltr">
+              </div>
+            </div>
+            <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
+              <button type="button" class="button secondary" id="appModalCancel">إلغاء</button>
+              <button type="submit" class="button primary" id="appModalSubmit">حفظ ونشر التطبيق 💾</button>
+            </div>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      overlay.querySelector('#appModalClose')?.addEventListener('click', () => overlay.classList.remove('open'));
+      overlay.querySelector('#appModalCancel')?.addEventListener('click', () => overlay.classList.remove('open'));
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
+    }
+
+    const heading = overlay.querySelector('#appModalHeading');
+    const form = overlay.querySelector('#appModalForm');
+    const nameInput = overlay.querySelector('#appFormName');
+    const slugInput = overlay.querySelector('#appFormSlug');
+    const iconInput = overlay.querySelector('#appFormIcon');
+    const categoryInput = overlay.querySelector('#appFormCategory');
+    const platformInput = overlay.querySelector('#appFormPlatform');
+    const summaryInput = overlay.querySelector('#appFormSummary');
+    const descInput = overlay.querySelector('#appFormDesc');
+    const versionInput = overlay.querySelector('#appFormVersion');
+    const urlInput = overlay.querySelector('#appFormDownloadUrl');
+
+    if (existingApp) {
+      heading.textContent = `تعديل تطبيق: ${existingApp.name || ''} ✏️`;
+      nameInput.value = existingApp.name || '';
+      slugInput.value = existingApp.slug || '';
+      slugInput.disabled = true;
+      iconInput.value = existingApp.icon || '';
+      categoryInput.value = existingApp.category || 'أدوات';
+      summaryInput.value = existingApp.summary || '';
+      descInput.value = existingApp.description || existingApp.catalogDescription || '';
+      const release = latestRelease(existingApp);
+      platformInput.value = release?.platform || 'android';
+      versionInput.value = release?.version || '';
+      urlInput.value = release?.downloadUrl || release?.download_url || '';
+    } else {
+      heading.textContent = 'إضافة تطبيق جديد 🚀';
+      form.reset();
+      slugInput.disabled = false;
+      categoryInput.value = 'أدوات';
+      iconInput.value = '⚡';
+      platformInput.value = 'android';
+      versionInput.value = '1.0.0';
+    }
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const submitBtn = overlay.querySelector('#appModalSubmit');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'جارٍ الحفظ... ⏳';
+      }
+
+      try {
+        const client = globalThis.SpaceBackend?.client;
+        if (!client) throw new Error('الاتصال بقاعدة البيانات غير متوفر');
+
+        const appData = {
+          name: nameInput.value.trim(),
+          slug: slugInput.value.trim().toLowerCase().replace(/\s+/g, '-'),
+          icon: iconInput.value.trim() || '⚡',
+          category: categoryInput.value.trim() || 'أدوات',
+          summary: summaryInput.value.trim(),
+          description: descInput.value.trim(),
+          catalog_description: summaryInput.value.trim(),
+          status: 'published',
+          is_demo: false
+        };
+
+        let savedApp = null;
+        if (existingApp?.id) {
+          const { data, error } = await client.from('apps').update(appData).eq('id', existingApp.id).select().single();
+          if (error) throw error;
+          savedApp = data;
+          notify('تم تحديث بيانات التطبيق بنجاح! ✅');
+        } else {
+          const { data, error } = await client.from('apps').insert(appData).select().single();
+          if (error) throw error;
+          savedApp = data;
+          notify('تم نشر التطبيق الجديد بنجاح! 🚀');
+        }
+
+        const v = versionInput.value.trim();
+        const dl = urlInput.value.trim();
+        if (savedApp?.id && (v || dl)) {
+          const relData = {
+            app_id: savedApp.id,
+            app_slug: savedApp.slug,
+            version: v || '1.0.0',
+            platform: platformInput.value,
+            format: platformInput.value === 'android' ? 'apk' : platformInput.value === 'windows' ? 'exe' : 'pwa',
+            download_url: dl || '#',
+            changelog: 'الإصدار الأولي'
+          };
+          await client.from('releases').upsert(relData, { onConflict: 'app_id,version' }).catch(() => {});
+        }
+
+        overlay.classList.remove('open');
+        setTimeout(() => location.reload(), 500);
+      } catch (err) {
+        notify(`تعذّر حفظ التطبيق: ${err.message || 'حدث خطأ'}`);
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'حفظ ونشر التطبيق 💾';
+        }
+      }
+    };
+
+    overlay.classList.add('open');
+  }
+
+  async function deleteApp(app, cardNode) {
+    if (!confirm(`هل أنت متأكد من حذف تطبيق "${app.name || app.slug}" نهائياً من الموقع؟`)) return;
+    try {
+      const client = globalThis.SpaceBackend?.client;
+      if (!client) throw new Error('الاتصال بقاعدة البيانات غير متوفر');
+
+      await client.from('releases').delete().eq('app_id', app.id).catch(() => {});
+      const { error } = await client.from('apps').delete().eq('id', app.id);
+      if (error) throw error;
+
+      cardNode?.remove();
+      notify('تم حذف التطبيق بنجاح 🗑️');
+    } catch (err) {
+      notify(`تعذّر حذف التطبيق: ${err.message || 'خطأ في الحذف'}`);
+    }
+  }
+
   function renderAppCard(app, compact = false) {
     const release = latestRelease(app);
     const article = make('article', 'app-card');
@@ -83,6 +274,27 @@
       meta.append(make('span', '', release?.fileSizeLabel || ''));
       meta.append(make('span', '', release?.catalogMetaLabel || ''));
       article.append(meta);
+
+      // Developer in-place controls
+      const devBar = make('div', 'app-dev-actions');
+      devBar.style.cssText = 'display:none;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);justify-content:flex-end;';
+      const editBtn = make('button', 'button secondary', '✏️ تعديل');
+      editBtn.type = 'button';
+      editBtn.style.cssText = 'padding:4px 10px;font-size:0.75rem;';
+      editBtn.onclick = (e) => { e.preventDefault(); openAppEditorModal(app); };
+
+      const deleteBtn = make('button', 'button secondary', '🗑️ حذف');
+      deleteBtn.type = 'button';
+      deleteBtn.style.cssText = 'padding:4px 10px;font-size:0.75rem;color:#ef4444;border-color:#ef4444;';
+      deleteBtn.onclick = (e) => { e.preventDefault(); deleteApp(app, article); };
+
+      devBar.append(editBtn, deleteBtn);
+      article.append(devBar);
+
+      if (window.isOwner) devBar.style.display = 'flex';
+      document.addEventListener('site:ownerStateChanged', (e) => {
+        devBar.style.display = e.detail?.isOwner ? 'flex' : 'none';
+      });
     }
     article.append(link);
     return article;
@@ -94,14 +306,35 @@
     header.append(make('span', `avatar${index % 2 ? ' avatar-alt' : ''}`, 'ع'));
     const author = make('div', 'post-person');
     author.append(make('b', '', ownerName));
-    const caption = [formatFullDate(post.publishedAt), post.kindLabel].filter(Boolean).join(' · ');
+    const caption = [formatFullDate(post.publishedAt || post.published_at), post.kindLabel].filter(Boolean).join(' · ');
     author.append(make('small', '', caption));
     header.append(author);
     appendDemoBadge(header, post);
-    const more = make('button', 'more', '···');
-    more.type = 'button';
-    more.setAttribute('aria-label', 'خيارات المنشور');
-    header.append(more);
+
+    // Developer post deletion button
+    const deletePostBtn = make('button', 'btn-delete-post', '🗑️');
+    deletePostBtn.type = 'button';
+    deletePostBtn.title = 'حذف هذا المنشور';
+    deletePostBtn.style.cssText = 'border:0;background:transparent;cursor:pointer;font-size:0.9rem;padding:4px;color:#ef4444;margin-inline-start:auto;display:none;';
+    deletePostBtn.onclick = async () => {
+      if (!confirm(`هل أنت متأكد من حذف منشور "${post.title || ''}" نهائياً؟`)) return;
+      try {
+        const client = globalThis.SpaceBackend?.client;
+        if (client && post.id) {
+          await client.from('posts').delete().eq('id', post.id);
+        }
+        article.remove();
+        notify('تم حذف المنشور 🗑️');
+      } catch (err) {
+        notify('تعذّر حذف المنشور.');
+      }
+    };
+    header.append(deletePostBtn);
+    if (window.isOwner) deletePostBtn.style.display = 'inline-block';
+    document.addEventListener('site:ownerStateChanged', e => {
+      deletePostBtn.style.display = e.detail?.isOwner ? 'inline-block' : 'none';
+    });
+
     article.append(header);
 
     const title = make('h2', 'post-title');
@@ -167,14 +400,111 @@
     });
     article.append(actions);
 
-    const commentForm = make('form', 'comment-form');
+    // Facebook-style Rich Comments Thread
+    const commentsContainer = make('div', 'comments-container');
+    const commentForm = make('form', 'comment-form open');
+    commentForm.style.cssText = 'display:flex;gap:7px;margin-top:12px;';
     const commentInput = make('input');
-    commentInput.placeholder = 'اكتب تعليقاً...';
+    commentInput.placeholder = window.isOwner ? 'اكتب رداً كـ مطور 👑...' : 'اكتب تعليقاً أو استفساراً...';
     commentInput.setAttribute('aria-label', 'اكتب تعليقاً');
     const send = make('button', '', 'إرسال');
     send.type = 'submit';
     commentForm.append(commentInput, send);
-    article.append(commentForm, make('div', 'comments'));
+
+    const commentsList = make('div', 'comments-list');
+    commentsList.style.cssText = 'display:grid;gap:8px;margin-top:10px;';
+
+    const renderCommentCard = (c) => {
+      const isDevComment = Boolean(c.isOwner || (c.user_name && c.user_name.includes('👑')) || (c.user_name && c.user_name.includes('المطور')));
+      const card = make('div', 'comment-card');
+      card.style.cssText = 'display:flex;gap:10px;align-items:flex-start;';
+
+      const av = make('span', 'avatar', isDevComment ? '👑' : (c.user_name || 'ع').charAt(0));
+      av.style.cssText = isDevComment
+        ? 'width:30px;height:30px;min-width:30px;border-radius:50%;background:var(--green);color:white;display:grid;place-items:center;font-size:0.75rem;font-weight:700;'
+        : 'width:30px;height:30px;min-width:30px;border-radius:50%;background:var(--green-pale);color:var(--green);display:grid;place-items:center;font-size:0.75rem;font-weight:700;';
+
+      const bubble = make('div', 'comment-bubble');
+      bubble.style.cssText = isDevComment
+        ? 'flex:1;background:rgba(40,116,82,0.06);border:1.5px solid var(--green);border-radius:12px;padding:8px 12px;'
+        : 'flex:1;background:var(--surface-alt);border:1px solid var(--line);border-radius:12px;padding:8px 12px;';
+
+      const head = make('div');
+      head.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;';
+      const author = make('strong', '', c.user_name || 'زائر');
+      author.style.cssText = isDevComment ? 'color:var(--green);font-size:0.85rem;' : 'font-size:0.85rem;';
+      const time = make('small', '', c.created_at ? formatFullDate(c.created_at) : 'الآن');
+      time.style.cssText = 'color:var(--muted);font-size:0.7rem;';
+      head.append(author, time);
+
+      const bodyText = make('p', '', c.comment_text || c.text || '');
+      bodyText.style.cssText = 'margin:0;font-size:0.84rem;line-height:1.6;';
+
+      const commentActions = make('div');
+      commentActions.style.cssText = 'display:flex;gap:10px;margin-top:4px;';
+      const replyBtn = make('button', '', 'رد ↩');
+      replyBtn.type = 'button';
+      replyBtn.style.cssText = 'background:none;border:none;color:var(--green);font-size:0.75rem;font-weight:700;cursor:pointer;padding:0;';
+      replyBtn.onclick = () => {
+        commentInput.value = `@${(c.user_name || 'صديق').replace('👑 ', '')} `;
+        commentInput.focus();
+      };
+      commentActions.append(replyBtn);
+
+      bubble.append(head, bodyText, commentActions);
+      card.append(av, bubble);
+      return card;
+    };
+
+    // Load existing comments from Supabase
+    if (globalThis.SpaceBackend?.client && post.id) {
+      globalThis.SpaceBackend.client
+        .from('post_comments')
+        .select('*')
+        .eq('post_id', post.id)
+        .order('created_at', { ascending: true })
+        .then(({ data }) => {
+          if (Array.isArray(data) && data.length > 0) {
+            commentsList.replaceChildren(...data.map(renderCommentCard));
+            commentCount.textContent = data.length;
+          }
+        }).catch(() => {});
+    }
+
+    commentForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const text = commentInput.value.trim();
+      if (!text) return;
+
+      const isDev = Boolean(window.isOwner);
+      let authorName = isDev ? '👑 علي محمد (المطور)' : 'زائر';
+      if (!isDev) {
+        try {
+          const session = await globalThis.SpaceBackend?.client?.auth?.getSession();
+          const u = session?.data?.session?.user;
+          if (u) authorName = u.user_metadata?.full_name || u.email?.split('@')[0] || 'عضو';
+        } catch(err) {}
+      }
+
+      const newC = {
+        post_id: post.id,
+        user_name: authorName,
+        comment_text: text,
+        created_at: new Date().toISOString()
+      };
+
+      commentsList.append(renderCommentCard(newC));
+      commentInput.value = '';
+      commentCount.textContent = Number(commentCount.textContent || 0) + 1;
+      notify(isDev ? 'تم نشر رد المطور بنجاح! 👑' : 'تمت إضافة تعليقك.');
+
+      if (globalThis.SpaceBackend?.client && post.id) {
+        globalThis.SpaceBackend.client.from('post_comments').insert([newC]).catch(() => {});
+      }
+    };
+
+    commentsContainer.append(commentForm, commentsList);
+    article.append(commentsContainer);
     return article;
   }
 
@@ -530,6 +860,20 @@
       setText('appCount', apps.length);
       apps.forEach(app => grid.append(renderAppCard(app)));
 
+      const toolbar = document.querySelector('.toolbar');
+      if (toolbar && !byId('devCreateAppBtn')) {
+        const createBtn = make('button', 'button primary', '+ إضافة تطبيق جديد 🚀');
+        createBtn.id = 'devCreateAppBtn';
+        createBtn.type = 'button';
+        createBtn.style.cssText = 'display:none;margin-bottom:14px;padding:8px 18px;font-size:0.88rem;align-items:center;gap:6px;';
+        createBtn.onclick = () => openAppEditorModal(null);
+        toolbar.insertAdjacentElement('beforebegin', createBtn);
+        if (window.isOwner) createBtn.style.display = 'inline-flex';
+        document.addEventListener('site:ownerStateChanged', (e) => {
+          createBtn.style.display = e.detail?.isOwner ? 'inline-flex' : 'none';
+        });
+      }
+
       const search = byId('appSearch');
       let platform = 'all';
       const updateVisibleApps = () => {
@@ -568,6 +912,26 @@
         return;
       }
       renderDetail(app);
+
+      const detailHero = byId('detailHero');
+      if (detailHero && !byId('devDetailActions')) {
+        const devActions = make('div', 'dev-hero-actions');
+        devActions.id = 'devDetailActions';
+        devActions.style.cssText = 'display:none;gap:10px;margin-top:14px;flex-wrap:wrap;';
+        const editBtn = make('button', 'button secondary', '✏️ تعديل بيانات التطبيق');
+        editBtn.type = 'button';
+        editBtn.onclick = () => openAppEditorModal(app);
+        const delBtn = make('button', 'button secondary', '🗑️ حذف هذا التطبيق');
+        delBtn.type = 'button';
+        delBtn.style.cssText = 'color:#ef4444;border-color:#ef4444;';
+        delBtn.onclick = () => deleteApp(app, null);
+        devActions.append(editBtn, delBtn);
+        detailHero.append(devActions);
+        if (window.isOwner) devActions.style.display = 'flex';
+        document.addEventListener('site:ownerStateChanged', (e) => {
+          devActions.style.display = e.detail?.isOwner ? 'flex' : 'none';
+        });
+      }
     } catch (error) {
       setState(['detailLoading', 'detailEmpty', 'detailError'], 'detailError');
     }
