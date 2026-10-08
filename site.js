@@ -31,7 +31,25 @@
       <header class="site-header">
         <div class="container nav">
           <a class="brand" href="index.html">
-            <span class="brand-mark">م</span>
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 64 64" width="24" height="24" fill="none">
+                <polygon points="32,10 52,22 32,34 12,22" fill="#86efac"/>
+                <circle cx="26" cy="19" r="2" fill="#143e30"/>
+                <circle cx="38" cy="25" r="2" fill="#143e30"/>
+                <path d="M26,19 L32,22 L38,22 L38,25" stroke="#143e30" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+                <polygon points="12,22 32,34 32,54 12,42" fill="#0d2b21"/>
+                <circle cx="20" cy="37" r="2" fill="#4ade80"/>
+                <circle cx="25" cy="43" r="2" fill="#4ade80"/>
+                <path d="M20,37 L20,40 L25,43 L25,49" stroke="#4ade80" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+                <polygon points="32,34 52,22 52,42 32,54" fill="#226547"/>
+                <circle cx="44" cy="36" r="2" fill="#bbf7d0"/>
+                <circle cx="39" cy="43" r="2" fill="#bbf7d0"/>
+                <circle cx="46" cy="46" r="2" fill="#bbf7d0"/>
+                <path d="M44,36 L41,38 L41,46 L46,46" stroke="#bbf7d0" stroke-width="2" stroke-linecap="round" fill="none"/>
+              </svg>
+            </span>
             <span>مساحة</span>
           </a>
           <nav class="nav-links" id="navLinks" aria-label="التنقل الرئيسي">
