@@ -272,4 +272,8 @@
   loadSiteInfo();
   setupContactForm();
   loadPostDetail();
+
+  document.addEventListener('site:languageChanged', () => {
+    if (byId('postDate')) loadPostDetail();
+  });
 })();

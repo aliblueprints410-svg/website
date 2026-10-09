@@ -148,7 +148,84 @@ const I18N = (() => {
     // Footer
     'footer.rights': { ar: 'جميع الحقوق محفوظة.', ckb: 'هەموو مافەکان پارێزراون.', en: 'All rights reserved.', tr: 'Tüm hakları saklıdır.' },
     'footer.owner_link': { ar: 'بوابة الإدارة', ckb: 'دەروازەی بەڕێوەبردن', en: 'Admin Access', tr: 'Yönetim Girişi' },
-    'footer.built_with': { ar: 'صُنع بحب وإتقان', ckb: 'بە خۆشەویستی و وردکاری دروستکراوە', en: 'Crafted with care', tr: 'Özenle geliştirildi' }
+    'footer.built_with': { ar: 'صُنع بحب وإتقان', ckb: 'بە خۆشەویستی و وردکاری دروستکراوە', en: 'Crafted with care', tr: 'Özenle geliştirildi' },
+
+    // Categories & Labels
+    'apps.categories_label': { ar: 'الأصناف:', ckb: 'پۆلەکان:', en: 'Categories:', tr: 'Kategoriler:' },
+    'category.all': { ar: 'الكل', ckb: 'هەمووی', en: 'All', tr: 'Tümü' },
+    'category.أدوات': { ar: 'أدوات', ckb: 'ئامرازەکان', en: 'Tools', tr: 'Araçlar' },
+    'category.تواصل اجتماعي': { ar: 'تواصل اجتماعي', ckb: 'تۆڕە کۆمەڵایەتییەکان', en: 'Social', tr: 'Sosyal' },
+    'category.للأطفال': { ar: 'للأطفال', ckb: 'بۆ منداڵان', en: 'Kids', tr: 'Çocuklar' },
+    'category.إنتاجية': { ar: 'إنتاجية', ckb: 'بەرهەمداری', en: 'Productivity', tr: 'Verimlilik' },
+    'category.تعليم': { ar: 'تعليم', ckb: 'پەروەردە و فێرکاری', en: 'Education', tr: 'Eğitim' },
+    'category.ألعاب': { ar: 'ألعاب', ckb: 'یارییەکان', en: 'Games', tr: 'Oyunlar' },
+    'category.تصميم': { ar: 'تصميم', ckb: 'دیزاین', en: 'Design', tr: 'Tasarım' },
+    'category.أعمال': { ar: 'أعمال', ckb: 'کار و بازرگانی', en: 'Business', tr: 'İş Dünyası' },
+    'category.مال وأعمال': { ar: 'مال وأعمال', ckb: 'دارایی و بازرگانی', en: 'Finance & Business', tr: 'Finans ve İş' },
+    'category.أخبار ومعلومات': { ar: 'أخبار ومعلومات', ckb: 'هەواڵ و زانیاری', en: 'News & Info', tr: 'Haber ve Bilgi' },
+    'category.صحة ولياقة': { ar: 'صحة ولياقة', ckb: 'تەندروستی و لەشجوانی', en: 'Health & Fitness', tr: 'Sağlık ve Fitness' },
+    'category.إسلامي': { ar: 'إسلامي', ckb: 'ئیسلامی', en: 'Islamic', tr: 'İslami' },
+    'category.ترفيه': { ar: 'ترفيه', ckb: 'کات بەسەربردن', en: 'Entertainment', tr: 'Eğlence' },
+
+    // App Card & Specifications
+    'app.version_prefix': { ar: 'الإصدار', ckb: 'وەشان', en: 'Version', tr: 'Sürüm' },
+    'app.view_details_label': { ar: 'عرض التفاصيل', ckb: 'پیشاندانی وردەکارییەکان', en: 'View Details', tr: 'Detayları Gör' },
+    'app.details_and_dl': { ar: 'التفاصيل والتحميل', ckb: 'وردەکاری و داگرتن', en: 'Details & Download', tr: 'Detaylar ve İndir' },
+    'app.download_btn': { ar: 'تحميل التطبيق', ckb: 'داگرتنی ئەپ', en: 'Download App', tr: 'Uygulamayı İndir' },
+    'app.open_web': { ar: 'فتح التطبيق كمتصفح', ckb: 'کردنەوە لە وێبگەڕدا', en: 'Open in Browser', tr: 'Tarayıcıda Aç' },
+    'app.privacy': { ar: 'الخصوصية', ckb: 'پاراستنی نهێنی', en: 'Privacy', tr: 'Gizlilik' },
+    'app.platform': { ar: 'المنصة', ckb: 'پلاتفۆرم', en: 'Platform', tr: 'Platform' },
+    'app.format': { ar: 'الصيغة', ckb: 'فۆرمات', en: 'Format', tr: 'Format' },
+    'app.version': { ar: 'الإصدار', ckb: 'وەشان', en: 'Version', tr: 'Sürüm' },
+    'app.size': { ar: 'الحجم', ckb: 'قەبارە', en: 'Size', tr: 'Boyut' },
+    'app.price_free': { ar: 'مجاني', ckb: 'بێبەرامبەر', en: 'Free', tr: 'Ücretsiz' },
+    'app.download_unavailable': { ar: 'الرابط غير متاح بعد', ckb: 'بەستەرەکە هێشتا بەردەست نییە', en: 'Link not available yet', tr: 'Bağlantı henüz mevcut değil' },
+
+    // Reviews & Ratings
+    'reviews.tag': { ar: 'آراء المستخدمين', ckb: 'بۆچوونی بەکارهێنەران', en: 'User Reviews', tr: 'Kullanıcı Yorumları' },
+    'reviews.title': { ar: 'التقييمات والمراجعات', ckb: 'هەڵسەنگاندن و پێداچوونەوەکان', en: 'Ratings & Reviews', tr: 'Değerlendirmeler ve Yorumlar' },
+    'reviews.interacting_as': { ar: 'تتفاعل بصفتك:', ckb: 'کارلێک دەکەیت وەک:', en: 'Interacting as:', tr: 'Olarak etkileşimdesiniz:' },
+    'reviews.change_name': { ar: '(تغيير الاسم)', ckb: '(گۆڕینی ناو)', en: '(Change Name)', tr: '(İsmi Değiştir)' },
+    'reviews.placeholder': { ar: 'اكتب رأيك أو تجربتك مع التطبيق...', ckb: 'ڕا یان ئەزموونی خۆت لەگەڵ ئەپەکە بنووسە...', en: 'Write your thoughts or review...', tr: 'Uygulama hakkındaki deneyiminizi yazın...' },
+    'reviews.submit': { ar: 'إرسال التقييم', ckb: 'ناردنی هەڵسەنگاندن', en: 'Submit Review', tr: 'Değerlendirmeyi Gönder' },
+    'reviews.submitting': { ar: 'جارٍ الإرسال... ⏳', ckb: 'دەنێردرێت... ⏳', en: 'Submitting... ⏳', tr: 'Gönderiliyor... ⏳' },
+    'reviews.new_rating': { ar: '(تقييم جديد)', ckb: '(هەڵسەنگاندنی نوێ)', en: '(New rating)', tr: '(Yeni değerlendirme)' },
+    'reviews.ratings_count': { ar: 'تقييم', ckb: 'هەڵسەنگاندن', en: 'reviews', tr: 'değerlendirme' },
+    'reviews.no_reviews': { ar: 'لا توجد تقييمات بعد. كن أول من يقيّم هذا التطبيق! 🌟', ckb: 'هێشتا هیچ هەڵسەنگاندنێک نییە. یەکەم کەس بە کە هەڵسەنگاندن دەکات! 🌟', en: 'No reviews yet. Be the first to review! 🌟', tr: 'Henüz değerlendirme yok. İlk değerlendiren siz olun! 🌟' },
+
+    // Posts & Feed
+    'posts.filter_all': { ar: 'الكل', ckb: 'هەمووی', en: 'All', tr: 'Tümü' },
+    'posts.sidebar_author_title': { ar: 'عن صاحب المساحة', ckb: 'دەربارەی خاوەنی ئەم شوێنە', en: 'About the Creator', tr: 'Alan Sahibi Hakkında' },
+    'posts.sidebar_learn_more': { ar: 'تعرف عليّ أكثر ←', ckb: 'زیاتر لەسەرم بزانە ←', en: 'Learn more about me →', tr: 'Hakkımda daha fazlası →' },
+    'posts.sidebar_portfolio_title': { ar: 'معرض الأعمال', ckb: 'پێشانگای کارەکان', en: 'Portfolio', tr: 'Portfolyo' },
+    'posts.sidebar_portfolio_head': { ar: 'استكشف التطبيقات', ckb: 'ئەپەکان بدۆزەرەوە', en: 'Explore Apps', tr: 'Uygulamaları Keşfet' },
+    'posts.sidebar_portfolio_desc': { ar: 'تصفح وحمل جميع التطبيقات والمشاريع البرمجية المتاحة لتجربتها مباشرة على مختلف المنصات.', ckb: 'سەردانی هەموو ئەپ و پڕۆژە نەرمەکاڵاییە بەردەستەکان بکە بۆ تاقیکردنەوەیان لەسەر پلاتفۆرمە جیاوازەکان.', en: 'Browse and download software projects built for various platforms.', tr: 'Farklı platformlar için geliştirilen yazılım projelerini keşfedin ve indirin.' },
+    'posts.likes_label': { ar: 'إعجاباً', ckb: 'بەدڵبوون', en: 'likes', tr: 'beğeni' },
+    'posts.comments_label': { ar: 'تعليق', ckb: 'لێدوان', en: 'comments', tr: 'yorum' },
+    'posts.visitor_comment_prefix': { ar: 'اكتب تعليقاً بصفتك: ', ckb: 'لێدوانێک بنووسە وەک: ', en: 'Write a comment as: ', tr: 'Olarak yorum yazın: ' },
+    'posts.send_btn': { ar: 'إرسال', ckb: 'ناردن', en: 'Send', tr: 'Gönder' },
+    'posts.reply_btn': { ar: 'رد', ckb: 'وەڵام', en: 'Reply', tr: 'Yanıtla' },
+    'posts.visitor_default': { ar: 'زائر', ckb: 'سەردانکەر', en: 'Visitor', tr: 'Ziyaretçi' },
+
+    // Composer
+    'composer.owner_head': { ar: 'كتابة ونشر تدوينة جديدة (خاص بالمالك)', ckb: 'نووسین و بڵاوکردنەوەی پۆستی نوێ (تایبەت بە خاوەن)', en: 'Write & Publish New Post (Owner Only)', tr: 'Yeni Gönderi Yaz ve Yayınla (Sadece Yönetici)' },
+    'composer.title_ph': { ar: 'عنوان التدوينة أو الفكرة...', ckb: 'ناونیشانی پۆست یان بیرۆکە...', en: 'Post title or idea...', tr: 'Gönderi başlığı veya fikir...' },
+    'composer.body_ph': { ar: 'اكتب تفاصيل التدوينة أو التحديث هنا...', ckb: 'وردەکاری پۆست یان نوێکاری لێرە بنووسە...', en: 'Write post details or updates here...', tr: 'Gönderi detaylarını buraya yazın...' },
+    'composer.publish_btn': { ar: 'نشر التدوينة الآن 🚀', ckb: 'ئێستا پۆستەکە بڵاوبکەرەوە 🚀', en: 'Publish Post Now 🚀', tr: 'Gönderiyi Şimdi Yayınla 🚀' },
+
+    // About Skills
+    'about.skill_ee': { ar: 'هندسة كهربائية', ckb: 'ئەندازیاری کارەبا', en: 'Electrical Engineering', tr: 'Elektrik Mühendisliği' },
+    'about.skill_ui': { ar: 'تطوير الواجهات', ckb: 'گەشەپێدانی ڕووکار', en: 'Frontend & UI', tr: 'Arayüz Geliştirme' },
+    'about.skill_ai': { ar: 'الذكاء الاصطناعي', ckb: 'ژیریی دەستکرد', en: 'Artificial Intelligence', tr: 'Yapay Zeka' },
+
+    // Page Titles
+    'title.home': { ar: 'مساحة — علي محمد', ckb: 'مەودا — عەلی محەمەد', en: 'Space — Ali Muhammed', tr: 'Mesafe — Ali Muhammed' },
+    'title.apps': { ar: 'معرض التطبيقات — مساحة', ckb: 'پێشانگای ئەپەکان — مەودا', en: 'App Directory — Space', tr: 'Uygulama Rehberi — Mesafe' },
+    'title.posts': { ar: 'المنشورات والأفكار — مساحة', ckb: 'پۆستەکان و بیرۆکەکان — مەودا', en: 'Posts & Thoughts — Space', tr: 'Gönderiler ve Fikirler — Mesafe' },
+    'title.about': { ar: 'عنّي — مساحة', ckb: 'دەربارەی من — مەودا', en: 'About Me — Space', tr: 'Hakkımda — Mesafe' },
+    'title.contact': { ar: 'تواصل — مساحة', ckb: 'پەیوەندی — مەودا', en: 'Contact — Space', tr: 'İletişim — Mesafe' },
+    'title.app_detail': { ar: 'تفاصيل التطبيق — مساحة', ckb: 'وردەکاری ئەپ — مەودا', en: 'App Details — Space', tr: 'Uygulama Detayları — Mesafe' },
+    'crumb.details': { ar: 'التفاصيل', ckb: 'وردەکاری', en: 'Details', tr: 'Detaylar' }
   };
 
   function getSavedLang() {
@@ -204,10 +281,44 @@ const I18N = (() => {
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
 
+    // Update document title based on current page
+    const pathname = (location.pathname || '').toLowerCase();
+    let titleKey = 'title.home';
+    if (pathname.includes('apps.html')) titleKey = 'title.apps';
+    else if (pathname.includes('posts.html')) titleKey = 'title.posts';
+    else if (pathname.includes('about.html')) titleKey = 'title.about';
+    else if (pathname.includes('contact.html')) titleKey = 'title.contact';
+    else if (pathname.includes('app.html')) titleKey = 'title.app_detail';
+    const translatedTitle = t(titleKey);
+    if (translatedTitle && !location.search.includes('slug=') && !location.search.includes('app=')) {
+      document.title = translatedTitle;
+    }
+
     // Dispatch custom event for dynamic components to re-render
     document.dispatchEvent(new CustomEvent('site:languageChanged', {
       detail: { lang, dir: meta.dir, meta }
     }));
+  }
+
+  function translateCategory(cat) {
+    if (!cat) return '';
+    return t(`category.${cat}`, cat);
+  }
+
+  function translateAll(root = document) {
+    if (!root) return;
+    root.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const translation = t(key);
+      if (translation) {
+        const attr = el.getAttribute('data-i18n-attr');
+        if (attr) {
+          el.setAttribute(attr, translation);
+        } else {
+          el.innerHTML = translation;
+        }
+      }
+    });
   }
 
   function init() {
@@ -220,9 +331,12 @@ const I18N = (() => {
     getDir: () => SUPPORTED_LANGS[currentLang]?.dir || 'rtl',
     getSupported: () => SUPPORTED_LANGS,
     setLanguage: applyLanguage,
+    translateCategory,
+    translateAll,
     init
   };
 })();
+globalThis.I18N = I18N;
 
 // Auto-init on script load
 if (document.readyState === 'loading') {

@@ -742,7 +742,8 @@
     heading.append(symbolSpan);
 
     if (category) {
-      const catPill = make('span', 'pill', category);
+      const catText = typeof I18N !== 'undefined' ? I18N.translateCategory(category) : category;
+      const catPill = make('span', 'pill', catText);
       catPill.style.cssText = 'background:var(--surface-alt);color:var(--text);border:1px solid var(--line);font-size:0.72rem;';
       heading.append(catPill);
     }
@@ -760,17 +761,20 @@
     article.append(title);
     article.append(make('p', '', compact ? (app.summary || '') : (app.catalogDescription || app.description || app.summary || '')));
 
-    const link = make('a', compact ? 'card-link' : 'button primary card-button', compact ? 'التفاصيل والتحميل' : 'عرض التفاصيل');
-    if (compact && release?.format === 'pwa') link.firstChild.textContent = 'التفاصيل والتجربة';
-    const arrow = make('span', '', '←');
-    link.append(arrow);
+    const isRtl = typeof I18N !== 'undefined' ? I18N.getDir() === 'rtl' : true;
+    const arrowSymbol = isRtl ? '←' : '→';
+    const linkText = compact
+      ? (typeof I18N !== 'undefined' ? I18N.t('app.details_and_dl', 'التفاصيل والتحميل') : 'التفاصيل والتحميل')
+      : (typeof I18N !== 'undefined' ? I18N.t('app.view_details_label', 'عرض التفاصيل') : 'عرض التفاصيل');
+    const link = make('a', compact ? 'card-link' : 'button primary card-button', `${linkText} ${arrowSymbol}`);
     link.href = `app.html?app=${encodeURIComponent(app.slug || '')}`;
 
     if (!compact) {
       const meta = make('div', 'card-meta');
       const effVer = (app.version && app.version !== '[نص مؤقت]') ? app.version : release?.version;
       if (effVer && effVer !== '[نص مؤقت]') {
-        meta.append(make('span', '', `الإصدار ${effVer}`));
+        const verLabel = typeof I18N !== 'undefined' ? I18N.t('app.version_prefix', 'الإصدار') : 'الإصدار';
+        meta.append(make('span', '', `${verLabel} ${effVer}`));
       }
       const effSize = app.fileSizeLabel || release?.fileSizeLabel;
       if (effSize) meta.append(make('span', '', effSize));
@@ -902,17 +906,24 @@
       if (isUserLiked && initialLikes === 0) initialLikes = 1;
     }
 
-    const likeCount = make('span', 'like-count', `♥ ${initialLikes} إعجاباً`);
+    const likesLabel = typeof I18N !== 'undefined' ? I18N.t('posts.likes_label', 'إعجاباً') : 'إعجاباً';
+    const likeCount = make('span', 'like-count', `♥ ${initialLikes} ${likesLabel}`);
     likeCount.dataset.count = String(initialLikes);
     counts.append(likeCount);
     const commentSummary = make('span');
     const commentCount = make('span', 'comment-count', Number.isFinite(post.commentsCount) ? post.commentsCount : 0);
-    commentSummary.append(commentCount, document.createTextNode(' تعليقات'));
+    const commentsLabel = typeof I18N !== 'undefined' ? I18N.t('posts.comments_label', 'تعليق') : 'تعليقات';
+    commentSummary.append(commentCount, document.createTextNode(` ${commentsLabel}`));
     counts.append(commentSummary);
     article.append(counts);
 
     const actions = make('div', 'post-actions');
-    [['like-button', '♡', 'إعجاب'], ['comment-button', '▢', 'تعليق'], ['share-button', '↗', 'مشاركة']].forEach(([className, symbol, label]) => {
+    const actItems = [
+      ['like-button', '♡', typeof I18N !== 'undefined' ? I18N.t('posts.like', 'إعجاب') : 'إعجاب'],
+      ['comment-button', '▢', typeof I18N !== 'undefined' ? I18N.t('posts.comment', 'تعليق') : 'تعليق'],
+      ['share-button', '↗', typeof I18N !== 'undefined' ? I18N.t('posts.share', 'مشاركة') : 'مشاركة']
+    ];
+    actItems.forEach(([className, symbol, label]) => {
       const button = make('button', className);
       button.type = 'button';
       button.append(document.createTextNode(`${symbol} `), make('span', '', label));
@@ -923,7 +934,8 @@
       const likeBtn = actions.querySelector('.like-button');
       if (likeBtn) {
         likeBtn.classList.add('liked');
-        likeBtn.innerHTML = '♥ <span>أعجبني</span>';
+        const likedText = typeof I18N !== 'undefined' ? I18N.t('posts.like', 'أعجبني') : 'أعجبني';
+        likeBtn.innerHTML = `♥ <span>${likedText}</span>`;
       }
     }
 
@@ -935,9 +947,11 @@
     commentForm.style.cssText = 'display:flex;gap:7px;margin-top:12px;';
     const commentInput = make('input');
     const visitorDisplayName = getVisitorDisplayName();
-    commentInput.placeholder = window.isOwner ? 'اكتب رداً كـ مطور 👑...' : `اكتب تعليقاً بصفتك: ${visitorDisplayName}...`;
+    const visitorPrefix = typeof I18N !== 'undefined' ? I18N.t('posts.visitor_comment_prefix', 'اكتب تعليقاً بصفتك: ') : 'اكتب تعليقاً بصفتك: ';
+    commentInput.placeholder = window.isOwner ? 'اكتب رداً كـ مطور 👑...' : `${visitorPrefix}${visitorDisplayName}...`;
     commentInput.setAttribute('aria-label', 'اكتب تعليقاً');
-    const send = make('button', '', 'إرسال');
+    const sendLabel = typeof I18N !== 'undefined' ? I18N.t('posts.send_btn', 'إرسال') : 'إرسال';
+    const send = make('button', '', sendLabel);
     send.type = 'submit';
     commentForm.append(commentInput, send);
 
@@ -973,7 +987,8 @@
 
       const commentActions = make('div');
       commentActions.style.cssText = 'display:flex;gap:10px;margin-top:4px;';
-      const replyBtn = make('button', '', 'رد ↩');
+      const replyLabel = typeof I18N !== 'undefined' ? I18N.t('posts.reply_btn', 'رد') : 'رد';
+      const replyBtn = make('button', '', `${replyLabel} ↩`);
       replyBtn.type = 'button';
       replyBtn.style.cssText = 'background:none;border:none;color:var(--green);font-size:0.75rem;font-weight:700;cursor:pointer;padding:0;';
       replyBtn.onclick = () => {
@@ -1156,7 +1171,8 @@
       buttonsContainer.replaceChildren();
 
       if (effectiveDl) {
-        const dlBtn = make('a', 'button primary', 'تحميل التطبيق الآن ');
+        const dlText = typeof I18N !== 'undefined' ? I18N.t('app.download_btn', 'تحميل التطبيق') : 'تحميل التطبيق';
+        const dlBtn = make('a', 'button primary', `${dlText} `);
         dlBtn.id = 'downloadButton';
         dlBtn.href = effectiveDl;
         dlBtn.target = '_blank';
@@ -1166,7 +1182,8 @@
       }
 
       if (effectiveWeb) {
-        const webBtn = make('a', 'button secondary', 'فتح التطبيق كمتصفح ');
+        const webText = typeof I18N !== 'undefined' ? I18N.t('app.open_web', 'فتح التطبيق كمتصفح') : 'فتح التطبيق كمتصفح';
+        const webBtn = make('a', 'button secondary', `${webText} `);
         webBtn.id = 'webAppButton';
         webBtn.href = effectiveWeb;
         webBtn.target = '_blank';
@@ -1176,12 +1193,14 @@
       }
 
       if (!effectiveDl && !effectiveWeb) {
-        const emptyBtn = make('button', 'button primary', 'الرابط غير متاح حالياً');
+        const emptyText = typeof I18N !== 'undefined' ? I18N.t('app.download_unavailable', 'الرابط غير متاح بعد') : 'الرابط غير متاح بعد';
+        const emptyBtn = make('button', 'button primary', emptyText);
         emptyBtn.disabled = true;
         buttonsContainer.append(emptyBtn);
       }
 
-      const backLink = make('a', 'button', 'العودة للتطبيقات');
+      const backText = typeof I18N !== 'undefined' ? I18N.t('app.back', 'العودة للتطبيقات') : 'العودة للتطبيقات';
+      const backLink = make('a', 'button', backText);
       backLink.href = 'apps.html';
       backLink.style.cssText = 'background:var(--surface-alt);border:1px solid var(--line);color:var(--text);';
       buttonsContainer.append(backLink);
@@ -1204,11 +1223,13 @@
     const sizeText = app.fileSizeLabel || dlRel?.fileSizeLabel || '—';
 
     setText('specPlatform', platArabicText);
-    setText('specCategory', app.category || 'عام');
+    setText('specCategory', typeof I18N !== 'undefined' ? I18N.translateCategory(app.category) : (app.category || 'عام'));
     setText('specFormat', formatText);
-    setText('specVersion', verText);
+    const verPrefix = typeof I18N !== 'undefined' ? I18N.t('app.version_prefix', 'الإصدار') : 'الإصدار';
+    setText('specVersion', `${verPrefix} ${verText}`);
     setText('specSize', sizeText);
-    setText('specPrice', app.priceLabel || 'مجاني');
+    const priceVal = app.priceLabel === 'مجاني' && typeof I18N !== 'undefined' ? I18N.t('app.price_free', 'مجاني') : (app.priceLabel || 'مجاني');
+    setText('specPrice', priceVal);
 
     const unavailableNotice = byId('downloadUnavailable');
     const hasAnyLink = Boolean(effectiveDl || effectiveWeb);
@@ -1620,7 +1641,8 @@
       if (platFilterContainer) {
         const allBtn = make('button', 'filter active');
         allBtn.dataset.filter = 'all';
-        allBtn.innerHTML = `<span data-i18n="apps.filter_all">الكل</span> <span id="appCount">${apps.length}</span>`;
+        const allText = typeof I18N !== 'undefined' ? I18N.t('apps.filter_all', 'الكل') : 'الكل';
+        allBtn.innerHTML = `<span data-i18n="apps.filter_all">${allText}</span> <span id="appCount">${apps.length}</span>`;
         platFilterContainer.replaceChildren(allBtn);
 
         const preferredOrder = ['android', 'windows', 'web', 'ios', 'mac', 'linux'];
@@ -1678,13 +1700,16 @@
           if (catToolbar) catToolbar.style.display = 'none';
         } else {
           if (catToolbar) catToolbar.style.display = 'flex';
-          const allCatBtn = make('button', 'filter active', 'الكل');
+          const allCatText = typeof I18N !== 'undefined' ? I18N.t('category.all', 'الكل') : 'الكل';
+          const allCatBtn = make('button', 'filter active', allCatText);
           allCatBtn.dataset.category = 'all';
+          allCatBtn.setAttribute('data-i18n', 'category.all');
           catFiltersContainer.replaceChildren(allCatBtn);
 
           categoryCounts.forEach((count, cat) => {
             const icon = categoryIcons[cat] || '📁';
-            const catBtn = make('button', 'filter', `${icon} ${cat}`);
+            const catLabel = typeof I18N !== 'undefined' ? I18N.translateCategory(cat) : cat;
+            const catBtn = make('button', 'filter', `${icon} ${catLabel}`);
             catBtn.dataset.category = cat;
             catFiltersContainer.append(catBtn);
           });
@@ -1701,6 +1726,7 @@
       }
 
       search?.addEventListener('input', updateVisibleApps);
+      if (typeof I18N !== 'undefined') I18N.translateAll(document);
     } catch (error) {
       setState(['appsLoading', 'appsEmpty', 'appSearchEmpty', 'appsError'], 'appsError');
     }
@@ -1794,9 +1820,11 @@
           filterButtons.push({ node: button, value: tag });
           filters.append(button);
         };
-        addFilter('', 'الكل');
+        const allText = typeof I18N !== 'undefined' ? I18N.t('posts.filter_all', 'الكل') : 'الكل';
+        addFilter('', allText);
         tags.forEach(tag => addFilter(tag, tag));
       }
+      if (typeof I18N !== 'undefined') I18N.translateAll(document);
     } catch (error) {
       setState(['postsLoading', 'postsEmpty', 'postsError'], 'postsError');
     }
@@ -1874,5 +1902,13 @@
   loadAppDetail();
   loadPostsPage();
   setupOwnerPostForm();
+
+  document.addEventListener('site:languageChanged', () => {
+    if (byId('featuredApps')) loadFeaturedApps();
+    if (byId('latestPost')) loadLatestPost();
+    if (byId('appsGrid')) loadAppsPage();
+    if (byId('feed')) loadPostsPage();
+    if (byId('detailHero')) loadAppDetail();
+  });
 })();
 

@@ -10,9 +10,9 @@
 <body><div id="site-header"></div><main class="container page-main"><header class="page-heading"><span class="overline" data-i18n="home.featured_apps_tag">مكتبة المشاريع</span><h1 data-i18n="apps.title">التطبيقات</h1><p data-i18n="apps.desc">تصفّح مشاريعي، اختر المنصة المناسبة، وحمّل التطبيق أو افتحه على الويب.</p></header>
   <div class="toolbar"><div class="filters platform-filters" id="platformFilters" role="group" aria-label="تصفية حسب المنصة"><button class="filter active" data-filter="all"><span data-i18n="apps.filter_all">الكل</span> <span id="appCount"></span></button></div><label class="searchbox"><span aria-hidden="true">⌕</span><input type="search" id="appSearch" placeholder="ابحث عن تطبيق" aria-label="ابحث عن تطبيق" data-i18n="apps.search_placeholder" data-i18n-attr="placeholder"></label></div>
   <div class="category-toolbar" id="categoryToolbar" style="margin-block:-4px 18px;overflow-x:auto;padding-bottom:4px;display:none;align-items:center;gap:8px;">
-    <span style="font-size:0.75rem;color:var(--muted);white-space:nowrap;font-weight:600;">الأصناف:</span>
+    <span style="font-size:0.75rem;color:var(--muted);white-space:nowrap;font-weight:600;" data-i18n="apps.categories_label">الأصناف:</span>
     <div class="filters category-filters" id="categoryFilters" role="group" aria-label="تصفية حسب صنف التطبيق" style="display:flex;gap:6px;flex-wrap:nowrap;">
-      <button class="filter active" data-category="all">الكل</button>
+      <button class="filter active" data-category="all" data-i18n="category.all">الكل</button>
     </div>
   </div>
   <div class="app-grid full-grid" id="appsGrid" aria-live="polite"><p class="empty-state" id="appsLoading" role="status" data-i18n="apps.loading">جارٍ تحميل التطبيقات...</p><p class="empty-state" id="appsEmpty" hidden data-i18n="apps.empty">لا توجد تطبيقات لعرضها الآن.</p><p class="empty-state" id="appSearchEmpty" hidden data-i18n="apps.empty">لا توجد تطبيقات تطابق البحث.</p><p class="empty-state" id="appsError" hidden data-i18n="apps.error">تعذّر تحميل التطبيقات. أعد المحاولة لاحقاً.</p></div>
