@@ -985,7 +985,25 @@
       return card;
     };
 
-    // Load existing comments from Supabase
+    const getLocalComments = () => {
+      try { return JSON.parse(localStorage.getItem(`space_post_comments_${post.id}`) || '[]'); }
+      catch(e) { return []; }
+    };
+    const saveLocalComment = (c) => {
+      try {
+        const list = getLocalComments();
+        list.push(c);
+        localStorage.setItem(`space_post_comments_${post.id}`, JSON.stringify(list));
+      } catch(e) {}
+    };
+
+    let postComments = getLocalComments();
+    if (postComments.length > 0) {
+      commentsList.replaceChildren(...postComments.map(renderCommentCard));
+      commentCount.textContent = postComments.length;
+    }
+
+    // Load existing comments from Supabase & merge
     if (globalThis.SpaceBackend?.client && post.id) {
       globalThis.SpaceBackend.client
         .from('post_comments')
@@ -993,9 +1011,16 @@
         .eq('post_id', post.id)
         .order('created_at', { ascending: true })
         .then(({ data }) => {
-          if (Array.isArray(data) && data.length > 0) {
-            commentsList.replaceChildren(...data.map(renderCommentCard));
-            commentCount.textContent = data.length;
+          if (Array.isArray(data)) {
+            const map = new Map();
+            data.forEach(c => map.set(c.id || `${c.user_name}_${c.comment_text}`, c));
+            postComments.forEach(c => {
+              const k = c.id || `${c.user_name}_${c.comment_text}`;
+              if (!map.has(k)) map.set(k, c);
+            });
+            postComments = Array.from(map.values()).sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+            commentsList.replaceChildren(...postComments.map(renderCommentCard));
+            commentCount.textContent = postComments.length;
           }
         }).catch(() => {});
     }
@@ -1009,20 +1034,28 @@
       const authorName = isDev ? '👑 علي محمد (المطور)' : getVisitorDisplayName();
 
       const newC = {
+        id: 'local_cmt_' + Date.now(),
         post_id: post.id,
         user_name: authorName,
         comment_text: text,
         created_at: new Date().toISOString()
       };
 
+      saveLocalComment(newC);
+      postComments.push(newC);
       commentsList.append(renderCommentCard(newC));
       commentInput.value = '';
-      commentCount.textContent = Number(commentCount.textContent || 0) + 1;
+      commentCount.textContent = postComments.length;
       notify(isDev ? 'تم نشر رد المطور بنجاح! 👑' : `تمت إضافة تعليقك بنجاح (${authorName}) ✨`);
 
       if (globalThis.SpaceBackend?.client && post.id) {
         try {
-          await globalThis.SpaceBackend.client.from('post_comments').insert([newC]);
+          await globalThis.SpaceBackend.client.from('post_comments').insert([{
+            post_id: post.id,
+            user_name: authorName,
+            comment_text: newC.comment_text,
+            created_at: newC.created_at
+          }]);
         } catch(err) {}
       }
     };
@@ -1287,35 +1320,67 @@
       return card;
     };
 
-    const fetchAppReviews = async () => {
-      if (!reviewsList || !globalThis.SpaceBackend?.client) return;
+    const getLocalReviews = () => {
       try {
-        const { data, error } = await globalThis.SpaceBackend.client
-          .from('app_reviews')
-          .select('*')
-          .eq('app_id', app.id)
-          .order('created_at', { ascending: false });
+        return JSON.parse(localStorage.getItem(`space_app_reviews_${app.id}`) || '[]');
+      } catch(e) { return []; }
+    };
 
-        if (error) throw error;
+    const saveLocalReview = (r) => {
+      try {
+        const list = getLocalReviews();
+        list.unshift(r);
+        localStorage.setItem(`space_app_reviews_${app.id}`, JSON.stringify(list));
+      } catch(e) {}
+    };
 
-        if (!data || data.length === 0) {
-          reviewsList.innerHTML = '<div style="text-align:center;padding:24px 10px;color:var(--muted);font-size:0.86rem;">لا توجد تقييمات أو مراجعات بعد. كن أول من يقيّم التطبيق! ⭐</div>';
-          setText('ratingAvg', '—');
-          setText('ratingStarsView', '☆☆☆☆☆');
-          setText('ratingCount', '(لا يوجد تقييم بعد)');
-          return;
+    let currentReviews = [];
+    const updateRatingsUI = (allReviews) => {
+      if (!allReviews || allReviews.length === 0) {
+        reviewsList.innerHTML = '<div style="text-align:center;padding:24px 10px;color:var(--muted);font-size:0.86rem;">لا توجد تقييمات أو مراجعات بعد. كن أول من يقيّم التطبيق! ⭐</div>';
+        setText('ratingAvg', '—');
+        setText('ratingStarsView', '☆☆☆☆☆');
+        setText('ratingCount', '(لا يوجد تقييم بعد)');
+        return;
+      }
+
+      const sum = allReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+      const avg = (sum / allReviews.length).toFixed(1);
+      const roundAvg = Math.round(Number(avg));
+      setText('ratingAvg', avg);
+      setText('ratingStarsView', '★'.repeat(roundAvg) + '☆'.repeat(Math.max(0, 5 - roundAvg)));
+      setText('ratingCount', `(${allReviews.length} ${allReviews.length === 1 ? 'تقييم' : 'تقييمات'})`);
+
+      reviewsList.replaceChildren(...allReviews.map(renderReviewCard));
+    };
+
+    const fetchAppReviews = async () => {
+      if (!reviewsList) return;
+      const local = getLocalReviews();
+      currentReviews = [...local];
+      updateRatingsUI(currentReviews);
+
+      if (globalThis.SpaceBackend?.client && app?.id) {
+        try {
+          const { data, error } = await globalThis.SpaceBackend.client
+            .from('app_reviews')
+            .select('*')
+            .eq('app_id', app.id)
+            .order('created_at', { ascending: false });
+
+          if (!error && Array.isArray(data)) {
+            const map = new Map();
+            data.forEach(r => map.set(r.id || `${r.user_name}_${r.review_text}`, r));
+            local.forEach(r => {
+              const k = r.id || `${r.user_name}_${r.review_text}`;
+              if (!map.has(k)) map.set(k, r);
+            });
+            currentReviews = Array.from(map.values()).sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            updateRatingsUI(currentReviews);
+          }
+        } catch (err) {
+          console.warn('Reviews fetch:', err);
         }
-
-        const sum = data.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
-        const avg = (sum / data.length).toFixed(1);
-        const roundAvg = Math.round(Number(avg));
-        setText('ratingAvg', avg);
-        setText('ratingStarsView', '★'.repeat(roundAvg) + '☆'.repeat(Math.max(0, 5 - roundAvg)));
-        setText('ratingCount', `(${data.length} ${data.length === 1 ? 'تقييم' : 'تقييمات'})`);
-
-        reviewsList.replaceChildren(...data.map(renderReviewCard));
-      } catch (err) {
-        console.warn('Reviews fetch:', err);
       }
     };
 
@@ -1368,6 +1433,7 @@
         const authorName = isDev ? '👑 علي محمد (المطور)' : getVisitorDisplayName();
 
         const newReview = {
+          id: 'local_rev_' + Date.now(),
           app_id: app.id,
           user_name: authorName,
           rating: Number(starInput?.value || 5),
@@ -1376,13 +1442,27 @@
         };
 
         commentInput.value = '';
+
+        // 1. Immediately save locally and update UI
+        saveLocalReview(newReview);
+        currentReviews.unshift(newReview);
+        updateRatingsUI(currentReviews);
+
         notify(isDev ? 'تم نشر مراجعة المطور! 👑' : `شكراً لتقييمك (${authorName})! أُضيفت مراجعتك بنجاح. ⭐`);
 
+        // 2. Synchronize to Supabase in background
         if (globalThis.SpaceBackend?.client && app?.id) {
           try {
-            await globalThis.SpaceBackend.client.from('app_reviews').insert([newReview]);
-            fetchAppReviews();
-          } catch(err) {}
+            await globalThis.SpaceBackend.client.from('app_reviews').insert([{
+              app_id: app.id,
+              user_name: authorName,
+              rating: newReview.rating,
+              review_text: newReview.review_text,
+              created_at: newReview.created_at
+            }]);
+          } catch(err) {
+            console.warn('Reviews sync note:', err);
+          }
         }
       };
     }
