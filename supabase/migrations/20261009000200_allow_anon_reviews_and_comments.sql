@@ -44,7 +44,7 @@ create table if not exists public.post_likes (
 );
 
 alter table public.post_likes enable row level security;
-grant select, insert, delete on public.post_likes to anon, authenticated;
+grant select, insert, update, delete on public.post_likes to anon, authenticated;
 
 drop policy if exists post_likes_select on public.post_likes;
 create policy post_likes_select
@@ -58,6 +58,14 @@ create policy post_likes_insert
   on public.post_likes
   for insert
   to anon, authenticated
+  with check (true);
+
+drop policy if exists post_likes_update on public.post_likes;
+create policy post_likes_update
+  on public.post_likes
+  for update
+  to anon, authenticated
+  using (true)
   with check (true);
 
 drop policy if exists post_likes_delete on public.post_likes;

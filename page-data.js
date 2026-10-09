@@ -891,25 +891,30 @@
 
     const counts = make('div', 'post-counts');
     let isUserLiked = Boolean(extraLikes.isLiked);
-    if (extraLikes.isLiked === undefined) {
+    if (!isUserLiked) {
       try {
         const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
-        if (post.slug && likedMap[post.slug]) isUserLiked = true;
+        if ((post.slug && likedMap[post.slug]) || (post.id && likedMap[post.id])) isUserLiked = true;
       } catch(e) {}
     }
 
     let initialLikes = extraLikes.dbLikesCount !== undefined ? extraLikes.dbLikesCount : (Number.isFinite(post.likesCount) ? post.likesCount : 0);
-    if (extraLikes.dbLikesCount === undefined) {
-      try {
-        const localLikes = localStorage.getItem(`space_likes_${post.slug}`);
-        if (localLikes !== null) {
-          initialLikes = Math.max(0, parseInt(localLikes, 10) || 0);
-        } else if (isUserLiked && initialLikes === 0) {
-          initialLikes = 1;
+    try {
+      const localLikes = localStorage.getItem(`space_likes_${post.slug}`) || (post.id ? localStorage.getItem(`space_likes_${post.id}`) : null);
+      if (localLikes !== null) {
+        const parsed = parseInt(localLikes, 10);
+        if (!Number.isNaN(parsed)) {
+          if (extraLikes.dbLikesCount !== undefined) {
+            initialLikes = Math.max(extraLikes.dbLikesCount, parsed);
+          } else {
+            initialLikes = Math.max(0, parsed);
+          }
         }
-      } catch(e) {
-        if (isUserLiked && initialLikes === 0) initialLikes = 1;
+      } else if (isUserLiked && initialLikes === 0) {
+        initialLikes = 1;
       }
+    } catch(e) {
+      if (isUserLiked && initialLikes === 0) initialLikes = 1;
     }
 
     const likesLabel = typeof I18N !== 'undefined' ? I18N.t('posts.likes_label', 'إعجاباً') : 'إعجاباً';
@@ -940,7 +945,7 @@
       const likeBtn = actions.querySelector('.like-button');
       if (likeBtn) {
         likeBtn.classList.add('liked');
-        const likedText = typeof I18N !== 'undefined' ? I18N.t('posts.like', 'أعجبني') : 'أعجبني';
+        const likedText = typeof I18N !== 'undefined' ? I18N.t('posts.liked', 'أعجبني') : 'أعجبني';
         likeBtn.innerHTML = `♥ <span>${likedText}</span>`;
       }
     }
@@ -1883,6 +1888,28 @@
               likesMap.set(l.post_id, (likesMap.get(l.post_id) || 0) + 1);
               if (vUuid && l.visitor_id === vUuid) userLikedSet.add(l.post_id);
             });
+          }
+        } catch(e) {}
+
+        // Auto-sync any locally recorded likes that are not yet in Supabase
+        try {
+          const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
+          const vUuid = typeof window.getVisitorUuid === 'function' ? window.getVisitorUuid() : localStorage.getItem('space_visitor_uuid');
+          if (vUuid && globalThis.SpaceBackend?.client) {
+            for (const post of posts) {
+              const isLocallyLiked = Boolean((post.slug && likedMap[post.slug]) || (post.id && likedMap[post.id]));
+              if (isLocallyLiked && post.id && !userLikedSet.has(post.id)) {
+                try {
+                  const { error: syncErr } = await globalThis.SpaceBackend.client
+                    .from('post_likes')
+                    .insert([{ post_id: post.id, visitor_id: vUuid }]);
+                  if (!syncErr) {
+                    userLikedSet.add(post.id);
+                    likesMap.set(post.id, (likesMap.get(post.id) || 0) + 1);
+                  }
+                } catch(e) {}
+              }
+            }
           }
         } catch(e) {}
       }

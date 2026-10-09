@@ -544,20 +544,26 @@
         const likesLabel = typeof I18N !== 'undefined' ? I18N.t('posts.likes_label', 'إعجاباً') : 'إعجاباً';
         count.textContent = `♥ ${next} ${likesLabel}`;
       }
-      const likedText = typeof I18N !== 'undefined' ? (active ? I18N.t('posts.like', 'أعجبني') : I18N.t('posts.like', 'إعجاب')) : (active ? 'أعجبني' : 'إعجاب');
+      const likedText = typeof I18N !== 'undefined' ? (active ? I18N.t('posts.liked', 'أعجبني') : I18N.t('posts.like', 'إعجاب')) : (active ? 'أعجبني' : 'إعجاب');
       like.innerHTML = `${active ? '♥' : '♡'} <span>${likedText}</span>`;
 
       // Save like state locally per post
       const titleLink = card?.querySelector('.post-title a');
       const postSlug = card?.dataset.postSlug || (titleLink ? (new URL(titleLink.href, location.href).searchParams.get('slug') || '') : '');
       const postId = card?.dataset.postId;
-      if (postSlug) {
+      if (postSlug || postId) {
         try {
           const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
-          if (active) likedMap[postSlug] = true;
-          else delete likedMap[postSlug];
+          if (active) {
+            if (postSlug) likedMap[postSlug] = true;
+            if (postId) likedMap[postId] = true;
+          } else {
+            if (postSlug) delete likedMap[postSlug];
+            if (postId) delete likedMap[postId];
+          }
           localStorage.setItem('space_liked_posts', JSON.stringify(likedMap));
-          localStorage.setItem(`space_likes_${postSlug}`, String(next));
+          if (postSlug) localStorage.setItem(`space_likes_${postSlug}`, String(next));
+          if (postId) localStorage.setItem(`space_likes_${postId}`, String(next));
         } catch(e) {}
       }
 
@@ -567,14 +573,15 @@
         if (active) {
           globalThis.SpaceBackend.client
             .from('post_likes')
-            .upsert([{ post_id: postId, visitor_id: vUuid }])
+            .insert([{ post_id: postId, visitor_id: vUuid }])
             .then(() => {})
             .catch(() => {});
         } else {
           globalThis.SpaceBackend.client
             .from('post_likes')
             .delete()
-            .match({ post_id: postId, visitor_id: vUuid })
+            .eq('post_id', postId)
+            .eq('visitor_id', vUuid)
             .then(() => {})
             .catch(() => {});
         }

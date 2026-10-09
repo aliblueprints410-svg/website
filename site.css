@@ -528,5 +528,11 @@ html.modal-open, body.modal-open {
   display: block;
 }
 
+.post-actions button.like-button.liked {
+  color: #e11d48;
+  background: rgba(225, 29, 72, 0.12);
+  font-weight: 700;
+}
+
 
 

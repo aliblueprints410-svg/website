@@ -102,6 +102,7 @@ const I18N = (() => {
     'posts.desc': { ar: 'أشارك هنا مراحل بناء المشاريع، دروس برمجية، وتحديثات دورية.', ckb: 'لێرەدا قۆناغەکانی پەرەپێدانی پڕۆژەکان، وانەی پرۆگرامسازی، و نوێکاری دەنووسم.', en: 'Project postmortems, coding lessons, and regular engineering updates.', tr: 'Proje geliştirme süreçleri, yazılım notları ve düzenli güncellemeler.' },
     'posts.search_placeholder': { ar: 'ابحث في المنشورات...', ckb: 'بگەڕێ لە پۆستەکاندا...', en: 'Search posts...', tr: 'Gönderilerde ara...' },
     'posts.like': { ar: 'إعجاب', ckb: 'بەدڵبوون', en: 'Like', tr: 'Beğen' },
+    'posts.liked': { ar: 'أعجبني', ckb: 'بەدڵم بوو', en: 'Liked', tr: 'Beğenildi' },
     'posts.comment': { ar: 'تعليق', ckb: 'لێدوان', en: 'Comment', tr: 'Yorum Yap' },
     'posts.share': { ar: 'مشاركة', ckb: 'هاوبەشی', en: 'Share', tr: 'Paylaş' },
     'posts.write_comment': { ar: 'اكتب تعليقاً...', ckb: 'لێدوانێک بنووسە...', en: 'Write a comment...', tr: 'Bir yorum yazın...' },
