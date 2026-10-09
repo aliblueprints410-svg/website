@@ -462,7 +462,7 @@
             // 3. Clean up any dummy placeholder releases
             const dummyRels = existingRels?.filter(r => r.version === '[نص مؤقت]' && r.id !== currentDlRel?.id && r.id !== currentWebRel?.id) || [];
             for (const d of dummyRels) {
-              await client.from('releases').delete().eq('id', d.id).catch(() => {});
+              try { await client.from('releases').delete().eq('id', d.id); } catch(dumErr) {}
             }
           } catch (relErr) {
             console.warn('Releases sync notice:', relErr);
@@ -494,11 +494,40 @@
       const client = globalThis.SpaceBackend?.client;
       if (!client) throw new Error('الاتصال بقاعدة البيانات غير متوفر');
 
-      await client.from('releases').delete().eq('app_id', app.id).catch(() => {});
-      const { error } = await client.from('apps').delete().eq('id', app.id);
-      if (error) throw error;
+      const targetId = app.id;
+      const targetSlug = app.slug;
 
-      cardNode?.remove();
+      // 1. Delete associated reviews
+      if (targetId) {
+        try { await client.from('app_reviews').delete().eq('app_id', targetId); } catch(e) {}
+      }
+
+      // 2. Delete associated releases
+      if (targetId) {
+        try { await client.from('releases').delete().eq('app_id', targetId); } catch(e) {}
+      }
+
+      // 3. Delete app record
+      let delError = null;
+      if (targetId) {
+        const { error } = await client.from('apps').delete().eq('id', targetId);
+        delError = error;
+      }
+      if (delError && targetSlug) {
+        const { error } = await client.from('apps').delete().eq('slug', targetSlug);
+        delError = error;
+      } else if (!targetId && targetSlug) {
+        const { error } = await client.from('apps').delete().eq('slug', targetSlug);
+        delError = error;
+      }
+
+      if (delError) throw delError;
+
+      if (cardNode) {
+        cardNode.remove();
+      } else {
+        setTimeout(() => location.assign('apps.html'), 500);
+      }
       notify('تم حذف التطبيق بنجاح 🗑️');
     } catch (err) {
       notify(`تعذّر حذف التطبيق: ${err.message || 'خطأ في الحذف'}`);
@@ -770,7 +799,9 @@
       notify(isDev ? 'تم نشر رد المطور بنجاح! 👑' : 'تمت إضافة تعليقك.');
 
       if (globalThis.SpaceBackend?.client && post.id) {
-        globalThis.SpaceBackend.client.from('post_comments').insert([newC]).catch(() => {});
+        try {
+          await globalThis.SpaceBackend.client.from('post_comments').insert([newC]);
+        } catch(err) {}
       }
     };
 
