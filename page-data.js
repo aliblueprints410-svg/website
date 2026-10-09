@@ -383,7 +383,8 @@
         return;
       }
       currentScreenshots.forEach((item, idx) => {
-        const src = typeof item === 'string' ? item : item?.src;
+        const parsed = (globalThis.parseScreenshotItem ? globalThis.parseScreenshotItem(item) : null) || (typeof item === 'string' ? { src: item } : item);
+        const src = parsed?.src;
         if (!src) return;
         const thumb = make('div', 'modal-screenshot-thumb');
         const img = document.createElement('img');
@@ -516,7 +517,8 @@
       dlUrlInput.value = existingApp.downloadUrl || dlRel?.downloadUrl || dlRel?.download_url || '';
       webUrlInput.value = existingApp.webUrl || webRel?.downloadUrl || webRel?.download_url || '';
 
-      currentScreenshots = safeArray(existingApp.screenshots).map(s => typeof s === 'string' ? { src: s } : s);
+      const parseItem = globalThis.parseScreenshotItem || ((x) => typeof x === 'string' ? { src: x } : x);
+      currentScreenshots = safeArray(existingApp.screenshots).map(s => parseItem(s, existingApp.name)).filter(Boolean);
       renderScreenshotPreviews();
     } else {
       heading.textContent = 'إضافة تطبيق جديد 🚀';
@@ -577,7 +579,7 @@
           price_label: prc,
           privacy_note: priv || null,
           tags: appTags,
-          screenshots: currentScreenshots,
+          screenshots: currentScreenshots.map(s => (globalThis.parseScreenshotItem ? globalThis.parseScreenshotItem(s) : s)).filter(Boolean),
           status: 'published',
           is_demo: false
         };
@@ -1105,19 +1107,20 @@
     }
 
     // Screenshots Gallery with Lightbox
-    const screenshots = safeArray(app.screenshots);
+    const parseItem = globalThis.parseScreenshotItem || ((x) => typeof x === 'string' ? { src: x } : x);
+    const screenshots = safeArray(app.screenshots).map(x => parseItem(x, app.name || 'لقطة شاشة')).filter(Boolean);
     const screenshotPanel = byId('screenshotsPanel');
     const gallery = byId('screenshotGallery');
     if (screenshotPanel && gallery) {
       gallery.replaceChildren();
       if (screenshots.length > 0) {
         screenshots.forEach(item => {
-          const src = typeof item === 'string' ? item : item?.src;
+          const src = item?.src;
           if (!src) return;
           const figure = make('figure', 'screenshot-item');
           const image = document.createElement('img');
           image.src = src;
-          image.alt = (typeof item === 'object' && item?.alt) ? item.alt : (app.name || 'لقطة شاشة');
+          image.alt = item.alt || app.name || 'لقطة شاشة';
           image.loading = 'lazy';
           image.onclick = () => openScreenshotLightbox(src, image.alt);
           figure.append(image);

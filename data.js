@@ -39,6 +39,54 @@ function readList(value) {
   }
 }
 
+function parseScreenshotItem(item, fallbackAlt = 'لقطة شاشة') {
+  if (!item) return null;
+  let curr = item;
+  for (let i = 0; i < 3; i++) {
+    if (typeof curr === 'string') {
+      const trimmed = curr.trim();
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('"') && trimmed.endsWith('"'))) {
+        try {
+          curr = JSON.parse(trimmed);
+        } catch (e) {
+          break;
+        }
+      } else {
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  if (typeof curr === 'string') {
+    const trimmed = curr.trim();
+    if (!trimmed) return null;
+    return { src: trimmed, alt: fallbackAlt };
+  }
+
+  if (curr && typeof curr === 'object') {
+    let src = curr.src || curr.url || curr.image || '';
+    if (typeof src === 'string') {
+      const trimmedSrc = src.trim();
+      if (trimmedSrc.startsWith('{') && trimmedSrc.endsWith('}')) {
+        try {
+          const inner = JSON.parse(trimmedSrc);
+          if (inner && (inner.src || inner.url)) src = inner.src || inner.url;
+        } catch (e) {}
+      }
+    }
+    if (!src || typeof src !== 'string' || !src.trim()) return null;
+    return {
+      src: src.trim(),
+      alt: curr.alt || curr.caption || fallbackAlt
+    };
+  }
+
+  return null;
+}
+globalThis.parseScreenshotItem = parseScreenshotItem;
+
 function firstValue(row, ...keys) {
   for (const key of keys) {
     if (row?.[key] !== undefined && row[key] !== null) return row[key];
@@ -142,11 +190,9 @@ function mapApp(row, releases = []) {
     description: firstValue(row, 'description', 'body') || '',
     category: firstValue(row, 'category') || '',
     privacyNote: firstValue(row, 'privacy_note', 'privacyNote') || '',
-    screenshots: readList(firstValue(row, 'screenshots')).map(item => {
-      if (typeof item === 'string') return { src: item, alt: firstValue(row, 'name', 'title') || 'لقطة شاشة' };
-      if (!item || typeof item !== 'object') return null;
-      return { ...item, src: firstValue(item, 'src', 'url') || '' };
-    }).filter(Boolean),
+    screenshots: readList(firstValue(row, 'screenshots'))
+      .map(item => parseScreenshotItem(item, firstValue(row, 'name', 'title') || 'لقطة شاشة'))
+      .filter(Boolean),
     tags: tagsList,
     platforms: platforms.length ? platforms : ['android'],
     features: readList(firstValue(row, 'features')),
