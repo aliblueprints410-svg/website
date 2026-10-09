@@ -171,8 +171,36 @@
                 <input type="text" id="appFormSlug" required placeholder="muamalati" dir="ltr">
               </div>
               <div class="form-field">
-                <label>التصنيف</label>
-                <input type="text" id="appFormCategory" placeholder="أدوات / تصميم / إنتاجية...">
+                <label>صنف التطبيق (الفئة) 📂</label>
+                <select id="appFormCategorySelect" style="width:100%;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);font-size:0.83rem;">
+                  <option value="أدوات">🛠️ أدوات (Tools)</option>
+                  <option value="تواصل اجتماعي">💬 تواصل اجتماعي (Social Media)</option>
+                  <option value="للأطفال">👶 للأطفال (For Kids)</option>
+                  <option value="إنتاجية">⚡ إنتاجية وعمل (Productivity)</option>
+                  <option value="تعليم">🎓 تعليم وتدريب (Education)</option>
+                  <option value="ألعاب">🎮 ألعاب وترفيه (Games)</option>
+                  <option value="تصميم">🎨 تصميم وإبداع (Design)</option>
+                  <option value="أعمال">💼 أعمال ومالية (Business)</option>
+                  <option value="أخبار ومعلومات">📰 أخبار ومعلومات (News)</option>
+                  <option value="صحة ولياقة">🧘 صحة ولياقة (Health)</option>
+                  <option value="custom">✍️ صنف مخصص آخر...</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Custom Category Input & Quick Chips -->
+            <div class="form-field" style="margin-top:-4px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <label style="font-size:0.78rem;color:var(--muted);">الصنف المختار أو تخصيص اسم الصنف:</label>
+                <input type="text" id="appFormCategory" style="max-width:240px;padding:5px 9px;font-size:0.8rem;" placeholder="اسم الصنف...">
+              </div>
+              <div id="categoryQuickChips" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;">
+                <button type="button" class="btn-chip" data-cat="أدوات" style="font-size:0.72rem;padding:3px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;">🛠️ أدوات</button>
+                <button type="button" class="btn-chip" data-cat="تواصل اجتماعي" style="font-size:0.72rem;padding:3px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;">💬 تواصل اجتماعي</button>
+                <button type="button" class="btn-chip" data-cat="للأطفال" style="font-size:0.72rem;padding:3px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;">👶 للأطفال</button>
+                <button type="button" class="btn-chip" data-cat="إنتاجية" style="font-size:0.72rem;padding:3px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;">⚡ إنتاجية</button>
+                <button type="button" class="btn-chip" data-cat="تعليم" style="font-size:0.72rem;padding:3px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;">🎓 تعليم</button>
+                <button type="button" class="btn-chip" data-cat="ألعاب" style="font-size:0.72rem;padding:3px 8px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;">🎮 ألعاب</button>
               </div>
             </div>
 
@@ -307,6 +335,7 @@
     const iconPreview = overlay.querySelector('#appFormIconPreview');
     const iconFileInput = overlay.querySelector('#appFormIconFile');
     const iconUploadBtn = overlay.querySelector('#appFormIconUploadBtn');
+    const categorySelect = overlay.querySelector('#appFormCategorySelect');
     const categoryInput = overlay.querySelector('#appFormCategory');
     const summaryInput = overlay.querySelector('#appFormSummary');
     const descInput = overlay.querySelector('#appFormDesc');
@@ -391,6 +420,50 @@
       renderScreenshotPreviews();
     };
 
+    const highlightActiveChip = (val) => {
+      overlay.querySelectorAll('.btn-chip').forEach(btn => {
+        const isMatch = btn.dataset.cat === val;
+        btn.style.background = isMatch ? 'var(--green-pale)' : 'var(--surface)';
+        btn.style.borderColor = isMatch ? 'var(--green)' : 'var(--line)';
+        btn.style.color = isMatch ? 'var(--green)' : 'var(--text)';
+        btn.style.fontWeight = isMatch ? '700' : '400';
+      });
+    };
+
+    if (categorySelect) {
+      categorySelect.onchange = () => {
+        if (categorySelect.value !== 'custom') {
+          categoryInput.value = categorySelect.value;
+        } else {
+          categoryInput.focus();
+        }
+        highlightActiveChip(categoryInput.value);
+      };
+    }
+
+    if (categoryInput) {
+      categoryInput.oninput = () => {
+        const val = categoryInput.value.trim();
+        if (categorySelect) {
+          const hasOpt = Array.from(categorySelect.options).some(o => o.value === val);
+          categorySelect.value = hasOpt ? val : 'custom';
+        }
+        highlightActiveChip(val);
+      };
+    }
+
+    overlay.querySelectorAll('.btn-chip').forEach(btn => {
+      btn.onclick = () => {
+        const cat = btn.dataset.cat;
+        categoryInput.value = cat;
+        if (categorySelect) {
+          const hasOpt = Array.from(categorySelect.options).some(o => o.value === cat);
+          categorySelect.value = hasOpt ? cat : 'custom';
+        }
+        highlightActiveChip(cat);
+      };
+    });
+
     if (existingApp) {
       heading.textContent = `تعديل تطبيق: ${existingApp.name || ''} ✏️`;
       nameInput.value = existingApp.name || '';
@@ -398,7 +471,13 @@
       slugInput.disabled = true;
       iconInput.value = existingApp.icon || '';
       updateIconPreview(existingApp.icon || '⚡');
-      categoryInput.value = existingApp.category || 'أدوات';
+      const catVal = existingApp.category || 'أدوات';
+      categoryInput.value = catVal;
+      if (categorySelect) {
+        const hasOpt = Array.from(categorySelect.options).some(o => o.value === catVal);
+        categorySelect.value = hasOpt ? catVal : 'custom';
+      }
+      highlightActiveChip(catVal);
       summaryInput.value = existingApp.summary || '';
       descInput.value = existingApp.description || existingApp.catalogDescription || '';
       featuresInput.value = safeArray(existingApp.features).join('\n');
@@ -429,6 +508,8 @@
       form.reset();
       slugInput.disabled = false;
       categoryInput.value = 'أدوات';
+      if (categorySelect) categorySelect.value = 'أدوات';
+      highlightActiveChip('أدوات');
       iconInput.value = '⚡';
       updateIconPreview('⚡');
       versionInput.value = '1.0.0';
@@ -473,7 +554,7 @@
           name: nameInput.value.trim(),
           slug: slugInput.value.trim().toLowerCase().replace(/\s+/g, '-'),
           icon: iconInput.value.trim() || '⚡',
-          category: categoryInput.value.trim() || 'أدوات',
+          category: categoryInput.value.trim() || (categorySelect && categorySelect.value !== 'custom' ? categorySelect.value : '') || 'أدوات',
           summary: summaryInput.value.trim(),
           description: descInput.value.trim(),
           catalog_description: summaryInput.value.trim(),
@@ -632,6 +713,7 @@
       : safeArray(app.releases).map(item => item?.platform).filter(Boolean);
     const effectivePlatforms = appPlatforms.length ? appPlatforms : ['android'];
     article.dataset.platforms = effectivePlatforms.map(p => String(p).toLowerCase()).join(' ');
+    article.dataset.category = (app.category || '').toLowerCase();
     article.dataset.name = typeof app.name === 'string' ? app.name : '';
     article.dataset.summary = typeof app.summary === 'string' ? app.summary : '';
 
@@ -641,6 +723,12 @@
     const symbolSpan = make('span', `app-symbol${variation}`);
     symbolSpan.append(renderAppIcon(app.icon, app.name));
     heading.append(symbolSpan);
+
+    if (category) {
+      const catPill = make('span', 'pill', category);
+      catPill.style.cssText = 'background:var(--surface-alt);color:var(--text);border:1px solid var(--line);font-size:0.72rem;';
+      heading.append(catPill);
+    }
 
     let platLabel = effectivePlatforms.map(p => platformNames[p.toLowerCase()] || p).join(' · ');
     if (!platLabel && release) platLabel = getPlatformLabel(release);
@@ -1043,6 +1131,7 @@
     const sizeText = app.fileSizeLabel || dlRel?.fileSizeLabel || '—';
 
     setText('specPlatform', platArabicText);
+    setText('specCategory', app.category || 'عام');
     setText('specFormat', formatText);
     setText('specVersion', verText);
     setText('specSize', sizeText);
@@ -1346,24 +1435,65 @@
 
       const search = byId('appSearch');
       let platform = 'all';
+      let selectedCategory = 'all';
+
+      // Dynamically add categories found in apps to category bar
+      const catFiltersContainer = byId('categoryFilters');
+      if (catFiltersContainer) {
+        const existingCatBtns = new Set(
+          Array.from(catFiltersContainer.querySelectorAll('button[data-category]'))
+            .map(b => (b.dataset.category || '').toLowerCase())
+        );
+        apps.forEach(a => {
+          const cat = (a.category || '').trim();
+          if (cat && !existingCatBtns.has(cat.toLowerCase())) {
+            existingCatBtns.add(cat.toLowerCase());
+            const newCatBtn = make('button', 'filter', `📁 ${cat}`);
+            newCatBtn.dataset.category = cat;
+            catFiltersContainer.append(newCatBtn);
+          }
+        });
+      }
+
       const updateVisibleApps = () => {
         const query = search?.value.trim().toLocaleLowerCase('ar') || '';
         let visibleCount = 0;
         grid.querySelectorAll('.app-card').forEach(card => {
           const cardPlatforms = (card.dataset.platforms || '').split(' ');
-          const searchText = `${card.dataset.name || ''} ${card.dataset.summary || ''}`.toLocaleLowerCase('ar');
-          const matches = (platform === 'all' || cardPlatforms.includes(platform)) && searchText.includes(query);
+          const cardCategory = (card.dataset.category || '').toLocaleLowerCase('ar');
+          const searchText = `${card.dataset.name || ''} ${card.dataset.summary || ''} ${card.dataset.category || ''}`.toLocaleLowerCase('ar');
+
+          const matchesPlatform = (platform === 'all' || cardPlatforms.includes(platform));
+          const matchesCategory = (selectedCategory === 'all' || cardCategory.includes(selectedCategory.toLocaleLowerCase('ar')));
+          const matchesQuery = searchText.includes(query);
+
+          const matches = matchesPlatform && matchesCategory && matchesQuery;
           card.hidden = !matches;
           if (matches) visibleCount++;
         });
         setHidden('appSearchEmpty', visibleCount > 0);
       };
-      document.querySelectorAll('.filter').forEach(button => button.addEventListener('click', () => {
-        document.querySelectorAll('.filter').forEach(filter => filter.classList.remove('active'));
+
+      // Platform filter clicks (toolbar filters)
+      document.querySelectorAll('.toolbar .filters .filter').forEach(button => button.addEventListener('click', () => {
+        document.querySelectorAll('.toolbar .filters .filter').forEach(filter => filter.classList.remove('active'));
         button.classList.add('active');
         platform = button.dataset.filter || 'all';
         updateVisibleApps();
       }));
+
+      // Category filter clicks
+      if (catFiltersContainer) {
+        catFiltersContainer.addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-category]');
+          if (!btn) return;
+          catFiltersContainer.querySelectorAll('button[data-category]').forEach(filter => filter.classList.remove('active'));
+          btn.classList.add('active');
+          selectedCategory = btn.dataset.category || 'all';
+          updateVisibleApps();
+        });
+      }
+
       search?.addEventListener('input', updateVisibleApps);
     } catch (error) {
       setState(['appsLoading', 'appsEmpty', 'appSearchEmpty', 'appsError'], 'appsError');

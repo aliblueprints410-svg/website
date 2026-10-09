@@ -9,5 +9,18 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="site.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script><script src="supabase-config.js" defer></script><script src="supabase-client.js" defer></script><script src="i18n.js" defer></script><script src="data.js" defer></script><script src="site.js" defer></script><script src="page-data.js" defer></script></head>
 <body><div id="site-header"></div><main class="container page-main"><header class="page-heading"><span class="overline" data-i18n="home.featured_apps_tag">مكتبة المشاريع</span><h1 data-i18n="apps.title">التطبيقات</h1><p data-i18n="apps.desc">تصفّح مشاريعي، اختر المنصة المناسبة، وحمّل التطبيق أو افتحه على الويب.</p></header>
   <div class="toolbar"><div class="filters" role="group" aria-label="تصفية حسب المنصة"><button class="filter active" data-filter="all"><span data-i18n="apps.filter_all">الكل</span> <span id="appCount"></span></button><button class="filter" data-filter="android">Android</button><button class="filter" data-filter="windows">Windows</button><button class="filter" data-filter="web">Web / PWA</button></div><label class="searchbox"><span aria-hidden="true">⌕</span><input type="search" id="appSearch" placeholder="ابحث عن تطبيق" aria-label="ابحث عن تطبيق" data-i18n="apps.search_placeholder" data-i18n-attr="placeholder"></label></div>
+  <div class="category-toolbar" style="margin-block:-4px 18px;overflow-x:auto;padding-bottom:4px;display:flex;align-items:center;gap:8px;">
+    <span style="font-size:0.75rem;color:var(--muted);white-space:nowrap;font-weight:600;">الأصناف:</span>
+    <div class="filters category-filters" id="categoryFilters" role="group" aria-label="تصفية حسب صنف التطبيق" style="display:flex;gap:6px;flex-wrap:nowrap;">
+      <button class="filter active" data-category="all">الكل</button>
+      <button class="filter" data-category="أدوات">🛠️ أدوات</button>
+      <button class="filter" data-category="تواصل اجتماعي">💬 تواصل اجتماعي</button>
+      <button class="filter" data-category="للأطفال">👶 للأطفال</button>
+      <button class="filter" data-category="إنتاجية">⚡ إنتاجية</button>
+      <button class="filter" data-category="تعليم">🎓 تعليم</button>
+      <button class="filter" data-category="ألعاب">🎮 ألعاب</button>
+      <button class="filter" data-category="تصميم">🎨 تصميم</button>
+    </div>
+  </div>
   <div class="app-grid full-grid" id="appsGrid" aria-live="polite"><p class="empty-state" id="appsLoading" role="status" data-i18n="apps.loading">جارٍ تحميل التطبيقات...</p><p class="empty-state" id="appsEmpty" hidden data-i18n="apps.empty">لا توجد تطبيقات لعرضها الآن.</p><p class="empty-state" id="appSearchEmpty" hidden data-i18n="apps.empty">لا توجد تطبيقات تطابق البحث.</p><p class="empty-state" id="appsError" hidden data-i18n="apps.error">تعذّر تحميل التطبيقات. أعد المحاولة لاحقاً.</p></div>
 </main><div id="site-footer"></div><div class="toast" id="toast" role="status" aria-live="polite"></div></body></html>
