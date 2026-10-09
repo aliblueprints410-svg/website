@@ -396,14 +396,22 @@ async function getSiteStats() {
 
   // Calculate Total Likes across all posts:
   let totalLikes = 0;
-  posts.forEach(p => {
-    let count = Number(p.likesCount) || 0;
+  if (client) {
     try {
-      const local = localStorage.getItem(`space_likes_${p.slug}`);
-      if (local !== null) count = Math.max(count, parseInt(local, 10) || 0);
+      const { data: lkData } = await client.from('post_likes').select('id');
+      if (Array.isArray(lkData)) totalLikes = lkData.length;
     } catch (e) {}
-    totalLikes += count;
-  });
+  }
+  if (totalLikes === 0) {
+    posts.forEach(p => {
+      let count = Number(p.likesCount) || 0;
+      try {
+        const local = localStorage.getItem(`space_likes_${p.slug}`);
+        if (local !== null) count = Math.max(count, parseInt(local, 10) || 0);
+      } catch (e) {}
+      totalLikes += count;
+    });
+  }
 
   // Calculate Total Feedback (post comments + app reviews)
   const totalFeedback = commentsCount + totalReviews;

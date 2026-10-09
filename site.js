@@ -502,6 +502,19 @@
     }
   }
 
+  function getVisitorUuid() {
+    try {
+      let id = localStorage.getItem('space_visitor_uuid');
+      if (!id) {
+        id = 'v_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now();
+        localStorage.setItem('space_visitor_uuid', id);
+      }
+      return id;
+    } catch(e) {
+      return 'v_temp_' + Date.now();
+    }
+  }
+
   function getVisitorDisplayName() {
     if (window.isOwner) return '👑 علي محمد (المطور)';
     try {
@@ -512,6 +525,7 @@
   }
 
   window.getVisitorId = getVisitorId;
+  window.getVisitorUuid = getVisitorUuid;
   window.getVisitorDisplayName = getVisitorDisplayName;
 
   // --- Likes, Comments & Social Interactions (Fully Open to All Visitors) ---
@@ -527,13 +541,16 @@
       const next = Math.max(0, Number(count?.dataset.count || 0) + (active ? 1 : -1));
       if (count) {
         count.dataset.count = next;
-        count.textContent = `♥ ${next} إعجاباً`;
+        const likesLabel = typeof I18N !== 'undefined' ? I18N.t('posts.likes_label', 'إعجاباً') : 'إعجاباً';
+        count.textContent = `♥ ${next} ${likesLabel}`;
       }
-      like.innerHTML = `${active ? '♥' : '♡'} <span>${active ? 'أعجبني' : 'إعجاب'}</span>`;
+      const likedText = typeof I18N !== 'undefined' ? (active ? I18N.t('posts.like', 'أعجبني') : I18N.t('posts.like', 'إعجاب')) : (active ? 'أعجبني' : 'إعجاب');
+      like.innerHTML = `${active ? '♥' : '♡'} <span>${likedText}</span>`;
 
       // Save like state locally per post
       const titleLink = card?.querySelector('.post-title a');
-      const postSlug = titleLink ? (new URL(titleLink.href, location.href).searchParams.get('slug') || '') : '';
+      const postSlug = card?.dataset.postSlug || (titleLink ? (new URL(titleLink.href, location.href).searchParams.get('slug') || '') : '');
+      const postId = card?.dataset.postId;
       if (postSlug) {
         try {
           const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
@@ -542,6 +559,25 @@
           localStorage.setItem('space_liked_posts', JSON.stringify(likedMap));
           localStorage.setItem(`space_likes_${postSlug}`, String(next));
         } catch(e) {}
+      }
+
+      // Synchronize live like to Supabase post_likes
+      if (globalThis.SpaceBackend?.client && postId) {
+        const vUuid = getVisitorUuid();
+        if (active) {
+          globalThis.SpaceBackend.client
+            .from('post_likes')
+            .upsert([{ post_id: postId, visitor_id: vUuid }])
+            .then(() => {})
+            .catch(() => {});
+        } else {
+          globalThis.SpaceBackend.client
+            .from('post_likes')
+            .delete()
+            .match({ post_id: postId, visitor_id: vUuid })
+            .then(() => {})
+            .catch(() => {});
+        }
       }
 
       toast(active ? `شكراً لتفاعلك! (${getVisitorDisplayName()}) ❤️` : 'تم إلغاء الإعجاب.');

@@ -806,8 +806,10 @@
     return article;
   }
 
-  function renderPost(post, index = 0, ownerName = '') {
+  function renderPost(post, index = 0, ownerName = '', extraLikes = {}) {
     const article = make('article', 'post-card');
+    article.dataset.postId = post.id || '';
+    article.dataset.postSlug = post.slug || '';
     const header = make('div', 'post-head');
     header.append(make('span', `avatar${index % 2 ? ' avatar-alt' : ''}`, 'ع'));
     const author = make('div', 'post-person');
@@ -888,22 +890,26 @@
     }
 
     const counts = make('div', 'post-counts');
-    let isUserLiked = false;
-    try {
-      const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
-      if (post.slug && likedMap[post.slug]) isUserLiked = true;
-    } catch(e) {}
+    let isUserLiked = Boolean(extraLikes.isLiked);
+    if (extraLikes.isLiked === undefined) {
+      try {
+        const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
+        if (post.slug && likedMap[post.slug]) isUserLiked = true;
+      } catch(e) {}
+    }
 
-    let initialLikes = Number.isFinite(post.likesCount) ? post.likesCount : 0;
-    try {
-      const localLikes = localStorage.getItem(`space_likes_${post.slug}`);
-      if (localLikes !== null) {
-        initialLikes = Math.max(0, parseInt(localLikes, 10) || 0);
-      } else if (isUserLiked && initialLikes === 0) {
-        initialLikes = 1;
+    let initialLikes = extraLikes.dbLikesCount !== undefined ? extraLikes.dbLikesCount : (Number.isFinite(post.likesCount) ? post.likesCount : 0);
+    if (extraLikes.dbLikesCount === undefined) {
+      try {
+        const localLikes = localStorage.getItem(`space_likes_${post.slug}`);
+        if (localLikes !== null) {
+          initialLikes = Math.max(0, parseInt(localLikes, 10) || 0);
+        } else if (isUserLiked && initialLikes === 0) {
+          initialLikes = 1;
+        }
+      } catch(e) {
+        if (isUserLiked && initialLikes === 0) initialLikes = 1;
       }
-    } catch(e) {
-      if (isUserLiked && initialLikes === 0) initialLikes = 1;
     }
 
     const likesLabel = typeof I18N !== 'undefined' ? I18N.t('posts.likes_label', 'إعجاباً') : 'إعجاباً';
@@ -1818,14 +1824,36 @@
         const siteInfo = await SiteData.getSiteInfo();
         ownerName = typeof siteInfo?.ownerName === 'string' ? siteInfo.ownerName : '';
       } catch (error) {}
+      // Fetch synchronized likes from Supabase post_likes
+      let likesMap = new Map();
+      let userLikedSet = new Set();
+      if (globalThis.SpaceBackend?.client) {
+        try {
+          const { data: dbLikes } = await globalThis.SpaceBackend.client
+            .from('post_likes')
+            .select('post_id, visitor_id');
+          if (Array.isArray(dbLikes)) {
+            const vUuid = typeof window.getVisitorUuid === 'function' ? window.getVisitorUuid() : localStorage.getItem('space_visitor_uuid');
+            dbLikes.forEach(l => {
+              likesMap.set(l.post_id, (likesMap.get(l.post_id) || 0) + 1);
+              if (vUuid && l.visitor_id === vUuid) userLikedSet.add(l.post_id);
+            });
+          }
+        } catch(e) {}
+      }
+
       setHidden('postsLoading', true);
       if (posts.length === 0) {
         setHidden('postsEmpty', false);
         return;
       }
       setHidden('postsEmpty', true);
+      feed.replaceChildren();
       const entries = posts.map((post, index) => ({
-        card: renderPost(post, index, ownerName),
+        card: renderPost(post, index, ownerName, {
+          dbLikesCount: likesMap.get(post.id),
+          isLiked: userLikedSet.has(post.id)
+        }),
         tags: safeArray(post.tags).filter(tag => typeof tag === 'string' && tag.trim())
       }));
       entries.forEach(({ card }) => feed.append(card));
