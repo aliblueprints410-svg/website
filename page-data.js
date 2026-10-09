@@ -882,8 +882,26 @@
     }
 
     const counts = make('div', 'post-counts');
-    const likeCount = make('span', 'like-count', `♥ ${Number.isFinite(post.likesCount) ? post.likesCount : 0} إعجاباً`);
-    likeCount.dataset.count = Number.isFinite(post.likesCount) ? String(post.likesCount) : '0';
+    let isUserLiked = false;
+    try {
+      const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
+      if (post.slug && likedMap[post.slug]) isUserLiked = true;
+    } catch(e) {}
+
+    let initialLikes = Number.isFinite(post.likesCount) ? post.likesCount : 0;
+    try {
+      const localLikes = localStorage.getItem(`space_likes_${post.slug}`);
+      if (localLikes !== null) {
+        initialLikes = Math.max(0, parseInt(localLikes, 10) || 0);
+      } else if (isUserLiked && initialLikes === 0) {
+        initialLikes = 1;
+      }
+    } catch(e) {
+      if (isUserLiked && initialLikes === 0) initialLikes = 1;
+    }
+
+    const likeCount = make('span', 'like-count', `♥ ${initialLikes} إعجاباً`);
+    likeCount.dataset.count = String(initialLikes);
     counts.append(likeCount);
     const commentSummary = make('span');
     const commentCount = make('span', 'comment-count', Number.isFinite(post.commentsCount) ? post.commentsCount : 0);
@@ -899,16 +917,13 @@
       actions.append(button);
     });
 
-    try {
-      const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
-      if (post.slug && likedMap[post.slug]) {
-        const likeBtn = actions.querySelector('.like-button');
-        if (likeBtn) {
-          likeBtn.classList.add('liked');
-          likeBtn.innerHTML = '♥ <span>أعجبني</span>';
-        }
+    if (isUserLiked) {
+      const likeBtn = actions.querySelector('.like-button');
+      if (likeBtn) {
+        likeBtn.classList.add('liked');
+        likeBtn.innerHTML = '♥ <span>أعجبني</span>';
       }
-    } catch(e) {}
+    }
 
     article.append(actions);
 

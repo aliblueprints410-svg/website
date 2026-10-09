@@ -540,6 +540,7 @@
           if (active) likedMap[postSlug] = true;
           else delete likedMap[postSlug];
           localStorage.setItem('space_liked_posts', JSON.stringify(likedMap));
+          localStorage.setItem(`space_likes_${postSlug}`, String(next));
         } catch(e) {}
       }
 
@@ -571,6 +572,17 @@
     input.value = '';
     toast(isOwnerUser ? 'تم نشر رد المطور بنجاح! 👑' : `تمت إضافة تعليقك كـ ${authorName}.`);
   });
+
+  // Clean up standalone PWA window title to prevent duplicate app name
+  try {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isStandalone) {
+      const curTitle = document.title;
+      // Strip trailing '— مساحة' or '- مساحة' because PWA app shell already prepends 'مساحة'
+      const simplified = curTitle.replace(/\s*([—\-|]\s*مساحة.*)$/i, '').trim();
+      if (simplified) document.title = simplified;
+    }
+  } catch(e) {}
 
   // Check user session on load
   if (typeof SpaceBackend !== 'undefined') {
