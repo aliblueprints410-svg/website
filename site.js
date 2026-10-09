@@ -488,32 +488,64 @@
     }
   });
 
-  // --- Likes, Comments & Social Interactions ---
+  // --- Visitor Random ID System & Open Interactions ---
+  function getVisitorId() {
+    try {
+      let id = localStorage.getItem('space_visitor_id');
+      if (!id) {
+        id = String(Math.floor(1000 + Math.random() * 9000));
+        localStorage.setItem('space_visitor_id', id);
+      }
+      return id;
+    } catch (e) {
+      return String(Math.floor(1000 + Math.random() * 9000));
+    }
+  }
+
+  function getVisitorDisplayName() {
+    if (window.isOwner) return '👑 علي محمد (المطور)';
+    try {
+      const customNick = localStorage.getItem('space_visitor_nick');
+      if (customNick && customNick.trim()) return customNick.trim();
+    } catch(e) {}
+    return `زائر #${getVisitorId()}`;
+  }
+
+  window.getVisitorId = getVisitorId;
+  window.getVisitorDisplayName = getVisitorDisplayName;
+
+  // --- Likes, Comments & Social Interactions (Fully Open to All Visitors) ---
   const feed = document.getElementById('feed');
   feed?.addEventListener('click', async event => {
     const like = event.target.closest('.like-button');
     const comment = event.target.closest('.comment-button');
     const share = event.target.closest('.share-button');
     if (like) {
-      if (!currentUser) {
-        toast('سجّل دخولك للتفاعل والإعجاب بالمنشور.');
-        openAuthModal();
-        return;
-      }
       const card = like.closest('.post-card');
-      const count = card.querySelector('.like-count');
+      const count = card?.querySelector('.like-count');
       const active = like.classList.toggle('liked');
-      const next = Number(count.dataset.count || 0) + (active ? 1 : -1);
-      count.dataset.count = next;
-      count.textContent = `♥ ${next} إعجاباً`;
-      like.innerHTML = `${active ? '♥' : '♡'} <span>${active ? 'أعجبني' : 'إعجاب'}</span>`;
-    } else if (comment) {
-      if (!currentUser) {
-        toast('سجّل دخولك لتتمكن من كتابة تعليق.');
-        openAuthModal();
-        return;
+      const next = Math.max(0, Number(count?.dataset.count || 0) + (active ? 1 : -1));
+      if (count) {
+        count.dataset.count = next;
+        count.textContent = `♥ ${next} إعجاباً`;
       }
-      const form = comment.closest('.post-card').querySelector('.comment-form');
+      like.innerHTML = `${active ? '♥' : '♡'} <span>${active ? 'أعجبني' : 'إعجاب'}</span>`;
+
+      // Save like state locally per post
+      const titleLink = card?.querySelector('.post-title a');
+      const postSlug = titleLink ? (new URL(titleLink.href, location.href).searchParams.get('slug') || '') : '';
+      if (postSlug) {
+        try {
+          const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
+          if (active) likedMap[postSlug] = true;
+          else delete likedMap[postSlug];
+          localStorage.setItem('space_liked_posts', JSON.stringify(likedMap));
+        } catch(e) {}
+      }
+
+      toast(active ? `شكراً لتفاعلك! (${getVisitorDisplayName()}) ❤️` : 'تم إلغاء الإعجاب.');
+    } else if (comment) {
+      const form = comment.closest('.post-card')?.querySelector('.comment-form');
       form?.classList.toggle('open');
       form?.querySelector('input')?.focus();
     } else if (share) {
@@ -524,37 +556,20 @@
 
   feed?.addEventListener('submit', async event => {
     if (!event.target.matches('.comment-form')) return;
+    if (event.defaultPrevented) return;
     event.preventDefault();
     const input = event.target.querySelector('input');
     const value = input.value.trim();
     if (!value) return;
 
-    if (!currentUser) {
-      toast('سجّل دخولك لتتمكن من كتابة تعليق.');
-      openAuthModal();
-      return;
-    }
-
     const card = event.target.closest('.post-card');
     const isOwnerUser = Boolean(window.isOwner);
-    const authorName = isOwnerUser
-      ? '👑 علي محمد (المالك)'
-      : (currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'عضو');
+    const authorName = isOwnerUser ? '👑 علي محمد (المطور)' : getVisitorDisplayName();
 
-    const comment = document.createElement('div');
-    comment.className = 'comment-entry' + (isOwnerUser ? ' owner-comment' : '');
-    const authorSpan = document.createElement('strong');
-    authorSpan.textContent = `${authorName}: `;
-    if (isOwnerUser) authorSpan.style.color = 'var(--green)';
-    const textSpan = document.createElement('span');
-    textSpan.textContent = value;
-    comment.append(authorSpan, textSpan);
-    card.querySelector('.comments')?.append(comment);
-
-    const count = card.querySelector('.comment-count');
+    const count = card?.querySelector('.comment-count');
     if (count) count.textContent = Number(count.textContent || 0) + 1;
     input.value = '';
-    toast(isOwnerUser ? 'تم نشر رد المالك بنجاح! 👑' : 'تمت إضافة تعليقك.');
+    toast(isOwnerUser ? 'تم نشر رد المطور بنجاح! 👑' : `تمت إضافة تعليقك كـ ${authorName}.`);
   });
 
   // Check user session on load

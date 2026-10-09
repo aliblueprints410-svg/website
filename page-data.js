@@ -49,6 +49,21 @@
     const lang = typeof I18N !== 'undefined' ? I18N.getLang() : 'ar';
     return monthLists[lang] || monthLists.ar;
   };
+  const getVisitorDisplayName = () => {
+    if (typeof window.getVisitorDisplayName === 'function') return window.getVisitorDisplayName();
+    try {
+      let id = localStorage.getItem('space_visitor_id');
+      if (!id) {
+        id = String(Math.floor(1000 + Math.random() * 9000));
+        localStorage.setItem('space_visitor_id', id);
+      }
+      const nick = localStorage.getItem('space_visitor_nick');
+      if (nick && nick.trim()) return nick.trim();
+      return `زائر #${id}`;
+    } catch(e) {
+      return 'زائر';
+    }
+  };
   const safeArray = value => Array.isArray(value) ? value : [];
   const latestRelease = app => safeArray(app.releases)[0] || null;
   const getPlatformLabel = release => release ? `${platformNames[release.platform] || release.platform || ''} · ${formatNames[release.format] || release.format || ''}`.trim() : '';
@@ -883,14 +898,27 @@
       button.append(document.createTextNode(`${symbol} `), make('span', '', label));
       actions.append(button);
     });
+
+    try {
+      const likedMap = JSON.parse(localStorage.getItem('space_liked_posts') || '{}');
+      if (post.slug && likedMap[post.slug]) {
+        const likeBtn = actions.querySelector('.like-button');
+        if (likeBtn) {
+          likeBtn.classList.add('liked');
+          likeBtn.innerHTML = '♥ <span>أعجبني</span>';
+        }
+      }
+    } catch(e) {}
+
     article.append(actions);
 
-    // Facebook-style Rich Comments Thread
+    // Facebook-style Rich Comments Thread (Open to all visitors with random ID)
     const commentsContainer = make('div', 'comments-container');
     const commentForm = make('form', 'comment-form open');
     commentForm.style.cssText = 'display:flex;gap:7px;margin-top:12px;';
     const commentInput = make('input');
-    commentInput.placeholder = window.isOwner ? 'اكتب رداً كـ مطور 👑...' : 'اكتب تعليقاً أو استفساراً...';
+    const visitorDisplayName = getVisitorDisplayName();
+    commentInput.placeholder = window.isOwner ? 'اكتب رداً كـ مطور 👑...' : `اكتب تعليقاً بصفتك: ${visitorDisplayName}...`;
     commentInput.setAttribute('aria-label', 'اكتب تعليقاً');
     const send = make('button', '', 'إرسال');
     send.type = 'submit';
@@ -904,7 +932,8 @@
       const card = make('div', 'comment-card');
       card.style.cssText = 'display:flex;gap:10px;align-items:flex-start;';
 
-      const av = make('span', 'avatar', isDevComment ? '👑' : (c.user_name || 'ع').charAt(0));
+      const avInitial = isDevComment ? '👑' : (c.user_name && c.user_name.startsWith('زائر #') ? '#' : (c.user_name || 'ز').charAt(0));
+      const av = make('span', 'avatar', avInitial);
       av.style.cssText = isDevComment
         ? 'width:30px;height:30px;min-width:30px;border-radius:50%;background:var(--green);color:white;display:grid;place-items:center;font-size:0.75rem;font-weight:700;'
         : 'width:30px;height:30px;min-width:30px;border-radius:50%;background:var(--green-pale);color:var(--green);display:grid;place-items:center;font-size:0.75rem;font-weight:700;';
@@ -962,14 +991,7 @@
       if (!text) return;
 
       const isDev = Boolean(window.isOwner);
-      let authorName = isDev ? '👑 علي محمد (المطور)' : 'زائر';
-      if (!isDev) {
-        try {
-          const session = await globalThis.SpaceBackend?.client?.auth?.getSession();
-          const u = session?.data?.session?.user;
-          if (u) authorName = u.user_metadata?.full_name || u.email?.split('@')[0] || 'عضو';
-        } catch(err) {}
-      }
+      const authorName = isDev ? '👑 علي محمد (المطور)' : getVisitorDisplayName();
 
       const newC = {
         post_id: post.id,
@@ -981,7 +1003,7 @@
       commentsList.append(renderCommentCard(newC));
       commentInput.value = '';
       commentCount.textContent = Number(commentCount.textContent || 0) + 1;
-      notify(isDev ? 'تم نشر رد المطور بنجاح! 👑' : 'تمت إضافة تعليقك.');
+      notify(isDev ? 'تم نشر رد المطور بنجاح! 👑' : `تمت إضافة تعليقك بنجاح (${authorName}) ✨`);
 
       if (globalThis.SpaceBackend?.client && post.id) {
         try {
@@ -1216,7 +1238,8 @@
       const usr = make('div', 'review-user');
       const userName = r.user_name || r.name || 'زائر';
       const isDev = Boolean(r.isOwner || userName.includes('👑') || userName.includes('المطور'));
-      const av = make('div', 'review-avatar', isDev ? '👑' : userName.charAt(0));
+      const avInitial = isDev ? '👑' : (userName.startsWith('زائر #') ? '#' : userName.charAt(0));
+      const av = make('div', 'review-avatar', avInitial);
       usr.append(av, document.createTextNode(userName));
       const stars = Number(r.rating || r.stars || 5);
       const st = make('div', 'review-stars', '★'.repeat(stars) + '☆'.repeat(Math.max(0, 5 - stars)));
@@ -1285,6 +1308,40 @@
       fetchAppReviews();
     }
 
+    const updateReviewerBadge = () => {
+      const badge = byId('visitorReviewBadge');
+      if (badge) badge.textContent = getVisitorDisplayName();
+      const commentInput = byId('reviewComment');
+      if (commentInput) {
+        commentInput.placeholder = window.isOwner
+          ? 'اكتب تعقيباً كـ مطور 👑...'
+          : `اكتب تقييمك ورأيك في التطبيق بصفتك: ${getVisitorDisplayName()}...`;
+      }
+    };
+    updateReviewerBadge();
+
+    const changeNickBtn = byId('changeVisitorNickBtn');
+    if (changeNickBtn) {
+      if (window.isOwner) {
+        changeNickBtn.hidden = true;
+      } else {
+        changeNickBtn.hidden = false;
+        changeNickBtn.onclick = () => {
+          const currentNick = localStorage.getItem('space_visitor_nick') || '';
+          const newNick = prompt('أدخل اسمك المستعار الذي تود أن يظهر مع تقييمك (أو اتركه فارغاً للاحتفاظ برقم الزائر العشوائي):', currentNick);
+          if (newNick !== null) {
+            if (newNick.trim()) {
+              localStorage.setItem('space_visitor_nick', newNick.trim());
+            } else {
+              localStorage.removeItem('space_visitor_nick');
+            }
+            updateReviewerBadge();
+            notify(`اسمك الظاهر الآن: ${getVisitorDisplayName()} ✨`);
+          }
+        };
+      }
+    }
+
     if (reviewForm) {
       reviewForm.onsubmit = async (e) => {
         e.preventDefault();
@@ -1292,16 +1349,8 @@
         const text = commentInput?.value.trim();
         if (!text) return;
 
-        let authorName = 'زائر';
-        if (window.isOwner) {
-          authorName = '👑 علي محمد (المطور)';
-        } else {
-          try {
-            const session = await globalThis.SpaceBackend?.client?.auth?.getSession();
-            const u = session?.data?.session?.user;
-            if (u) authorName = u.user_metadata?.full_name || u.email?.split('@')[0] || 'عضو';
-          } catch(err) {}
-        }
+        const isDev = Boolean(window.isOwner);
+        const authorName = isDev ? '👑 علي محمد (المطور)' : getVisitorDisplayName();
 
         const newReview = {
           app_id: app.id,
@@ -1312,7 +1361,7 @@
         };
 
         commentInput.value = '';
-        notify('شكراً لتقييمك! أُضيفت مراجعتك بنجاح. ⭐');
+        notify(isDev ? 'تم نشر مراجعة المطور! 👑' : `شكراً لتقييمك (${authorName})! أُضيفت مراجعتك بنجاح. ⭐`);
 
         if (globalThis.SpaceBackend?.client && app?.id) {
           try {
