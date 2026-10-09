@@ -1516,18 +1516,44 @@
         if (card) card.hidden = value === null || value === undefined;
         setText(id, value === null || value === undefined ? '' : format(value));
       };
-      setStat('statApps', stats?.appsCount);
-      setStat('statDownloads', stats?.downloadsCount, formatCompactCount);
-      setStat('statFollowers', stats?.followersCount, formatCompactCount);
+
+      setStat('statApps', stats?.appsCount ?? 0);
+
+      const ratingNode = byId('statRating');
+      if (ratingNode) {
+        const card = ratingNode.closest('.quick-stats > div');
+        if (card) card.hidden = false;
+        const val = stats?.avgRatingFormatted || '5.0';
+        ratingNode.innerHTML = `⭐ ${val}`;
+      }
+
+      const likesNode = byId('statLikes');
+      if (likesNode) {
+        const card = likesNode.closest('.quick-stats > div');
+        if (card) card.hidden = false;
+        likesNode.innerHTML = `❤️ ${stats?.totalLikes ?? 0}`;
+      }
+
+      const commentsNode = byId('statComments');
+      if (commentsNode) {
+        const card = commentsNode.closest('.quick-stats > div');
+        if (card) card.hidden = false;
+        commentsNode.innerHTML = `💬 ${stats?.totalComments ?? 0}`;
+      }
+
+      if (byId('statPosts')) {
+        setStat('statPosts', stats?.postsCount ?? 0);
+      }
+      if (byId('statDownloads')) {
+        setStat('statDownloads', stats?.downloadsCount, formatCompactCount);
+      }
+      if (byId('statFollowers')) {
+        setStat('statFollowers', stats?.followersCount, formatCompactCount);
+      }
+
       setHidden('statsDemoBadge', stats.isDemo !== true);
     } catch (error) {
-      setText('statApps', '');
-      setText('statDownloads', '');
-      setText('statFollowers', '');
-      ['statApps', 'statDownloads', 'statFollowers'].forEach(id => {
-        const card = byId(id)?.closest('.quick-stats > div');
-        if (card) card.hidden = true;
-      });
+      console.warn('loadSiteStats error:', error);
     }
   }
 
@@ -1904,6 +1930,7 @@
   setupOwnerPostForm();
 
   document.addEventListener('site:languageChanged', () => {
+    if (byId('statApps')) loadSiteStats();
     if (byId('featuredApps')) loadFeaturedApps();
     if (byId('latestPost')) loadLatestPost();
     if (byId('appsGrid')) loadAppsPage();

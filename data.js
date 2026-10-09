@@ -355,7 +355,71 @@ async function submitContactMessage(input = {}) {
 
 async function getSiteStats() {
   const apps = await fetchPublicApps();
-  return { appsCount: apps.length, downloadsCount: null, followersCount: null, isDemo: false };
+  let posts = [];
+  try {
+    posts = await fetchPublicPosts();
+  } catch (e) {}
+
+  let reviews = [];
+  let commentsCount = 0;
+  const client = backendClient();
+  if (client) {
+    try {
+      const { data: revData } = await client.from('app_reviews').select('id,rating');
+      if (Array.isArray(revData)) reviews = revData;
+    } catch (e) {}
+    try {
+      const { data: comData } = await client.from('post_comments').select('id');
+      if (Array.isArray(comData)) commentsCount = comData.length;
+    } catch (e) {}
+  }
+
+  // Include local reviews from localStorage across known apps if not in DB yet
+  try {
+    apps.forEach(app => {
+      const local = JSON.parse(localStorage.getItem(`space_app_reviews_${app.id}`) || '[]');
+      if (Array.isArray(local) && local.length > 0) {
+        local.forEach(lr => {
+          if (!reviews.some(r => r.id === lr.id)) reviews.push(lr);
+        });
+      }
+    });
+  } catch (e) {}
+
+  // Calculate Average Rating:
+  let avgRating = '5.0';
+  const totalReviews = reviews.length;
+  if (totalReviews > 0) {
+    const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+    avgRating = (sum / totalReviews).toFixed(1);
+  }
+
+  // Calculate Total Likes across all posts:
+  let totalLikes = 0;
+  posts.forEach(p => {
+    let count = Number(p.likesCount) || 0;
+    try {
+      const local = localStorage.getItem(`space_likes_${p.slug}`);
+      if (local !== null) count = Math.max(count, parseInt(local, 10) || 0);
+    } catch (e) {}
+    totalLikes += count;
+  });
+
+  // Calculate Total Feedback (post comments + app reviews)
+  const totalFeedback = commentsCount + totalReviews;
+
+  return {
+    appsCount: apps.length,
+    avgRating: Number(avgRating),
+    avgRatingFormatted: avgRating,
+    totalReviews,
+    totalLikes,
+    totalComments: totalFeedback,
+    postsCount: posts.length,
+    downloadsCount: null,
+    followersCount: null,
+    isDemo: false
+  };
 }
 
 async function getSiteInfo() {

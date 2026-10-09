@@ -44,8 +44,14 @@ const I18N = (() => {
 
     // Stats
     'stat.apps': { ar: 'تطبيقاً ومشروعاً', ckb: 'ئەپ و پڕۆژە', en: 'Apps & Projects', tr: 'Uygulama ve Proje' },
+    'stat.rating': { ar: 'متوسط تقييم التطبيقات', ckb: 'تێکڕای هەڵسەنگاندنی ئەپەکان', en: 'Overall App Rating', tr: 'Genel Uygulama Puanı' },
+    'stat.likes': { ar: 'إعجاباً وتفاعلاً', ckb: 'دڵخواز و کارلێک', en: 'Likes & Reactions', tr: 'Beğeni ve Etkileşim' },
+    'stat.comments': { ar: 'تعليقاً ومراجعة', ckb: 'بۆچوون و پێداچوونەوە', en: 'Comments & Reviews', tr: 'Yorum ve İnceleme' },
     'stat.downloads': { ar: 'عملية تحميل', ckb: 'داگرتن', en: 'Downloads', tr: 'İndirme' },
     'stat.followers': { ar: 'متابعاً', ckb: 'شوێنکەوتوو', en: 'Followers', tr: 'Takipçi' },
+    'stat.posts': { ar: 'منشوراً وتحديثاً', ckb: 'پۆست و نوێکاری', en: 'Posts & Updates', tr: 'Gönderi ve Güncelleme' },
+    'stat.platforms': { ar: 'منصات مدعومة', ckb: 'پلاتفۆرمی پاڵپشتیکراو', en: 'Supported Platforms', tr: 'Desteklenen Platform' },
+    'stat.satisfaction': { ar: 'نسبة رضا المستخدمين', ckb: 'ڕێژەی ڕەزامەندی', en: 'Satisfaction Rate', tr: 'Memnuniyet Oranı' },
 
     // Sections
     'home.featured_apps_tag': { ar: 'من مكتب التطوير', ckb: 'لە مێزی گەشەپێدانەوە', en: 'From the Workshop', tr: 'Geliştirme Masasından' },
