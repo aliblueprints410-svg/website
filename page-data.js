@@ -22,7 +22,22 @@
     return badge;
   };
   const notify = message => document.dispatchEvent(new CustomEvent('site:toast', { detail: message }));
-  const platformNames = { android: 'Android', windows: 'Windows', web: 'Web' };
+  const platformNames = {
+    android: 'Android',
+    windows: 'Windows',
+    web: 'Web / PWA',
+    ios: 'iOS',
+    mac: 'macOS',
+    linux: 'Linux'
+  };
+  const platformArabic = {
+    android: 'أندرويد',
+    windows: 'ويندوز',
+    web: 'ويب (متصفح)',
+    ios: 'آيفون iOS',
+    mac: 'ماك macOS',
+    linux: 'لينكس Linux'
+  };
   const formatNames = { apk: 'APK', exe: 'EXE', pwa: 'PWA' };
   const monthLists = {
     ar: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
@@ -140,7 +155,7 @@
       overlay = make('div', 'modal-overlay');
       overlay.id = 'appEditModalOverlay';
       overlay.innerHTML = `
-        <div class="modal-dialog" style="max-width:560px;width:95%;max-height:85vh;overflow-y:auto;overscroll-behavior:contain;padding:22px;display:flex;flex-direction:column;box-sizing:border-box;" role="dialog">
+        <div class="modal-dialog" style="max-width:580px;width:95%;max-height:85vh;overflow-y:auto;overscroll-behavior:contain;padding:22px;display:flex;flex-direction:column;box-sizing:border-box;" role="dialog">
           <div class="modal-header" style="margin-bottom:12px;">
             <h3 id="appModalHeading" style="font-size:1.15rem;">إضافة تطبيق جديد 🚀</h3>
             <button class="modal-close" id="appModalClose" type="button" aria-label="إغلاق">✕</button>
@@ -157,7 +172,7 @@
               </div>
               <div class="form-field">
                 <label>التصنيف</label>
-                <input type="text" id="appFormCategory" placeholder="أدوات / تصميم...">
+                <input type="text" id="appFormCategory" placeholder="أدوات / تصميم / إنتاجية...">
               </div>
             </div>
 
@@ -176,38 +191,80 @@
               </div>
             </div>
 
+            <!-- Supported Platforms Selection -->
+            <div class="form-field">
+              <label>المنصات المدعومة (اختر كل المنصات التي يعمل عليها التطبيق) 💻📱</label>
+              <div id="appFormPlatformsContainer" style="display:flex;flex-wrap:wrap;gap:10px;background:var(--surface-alt);padding:10px;border-radius:10px;border:1px solid var(--line);">
+                <label style="display:flex;align-items:center;gap:5px;font-size:0.83rem;cursor:pointer;">
+                  <input type="checkbox" class="app-platform-cb" value="android" checked> 🤖 Android
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:0.83rem;cursor:pointer;">
+                  <input type="checkbox" class="app-platform-cb" value="windows" checked> 🪟 Windows
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:0.83rem;cursor:pointer;">
+                  <input type="checkbox" class="app-platform-cb" value="web"> 🌐 Web / PWA
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:0.83rem;cursor:pointer;">
+                  <input type="checkbox" class="app-platform-cb" value="ios"> 🍎 iOS
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:0.83rem;cursor:pointer;">
+                  <input type="checkbox" class="app-platform-cb" value="mac"> 💻 macOS
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:0.83rem;cursor:pointer;">
+                  <input type="checkbox" class="app-platform-cb" value="linux"> 🐧 Linux
+                </label>
+              </div>
+            </div>
+
             <div class="form-field">
               <label>نبذة سريعة * (تظهر في بطاقة التطبيق)</label>
               <input type="text" id="appFormSummary" required placeholder="نبذة مختصرة تصف التطبيق في سطر واحد...">
             </div>
 
             <div class="form-field">
-              <label>الوصف المفصل والمميزات</label>
-              <textarea id="appFormDesc" rows="3" placeholder="اكتب تفاصيل ومميزات التطبيق هنا..."></textarea>
+              <label>الوصف المفصل للتطبيق</label>
+              <textarea id="appFormDesc" rows="3" placeholder="اكتب تفاصيل وشرح التطبيق هنا..."></textarea>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <!-- Features / Skills Control -->
+            <div class="form-field">
+              <label>المزايا والتقنيات الرئيسية (كل ميزة في سطر مستقل) ⭐</label>
+              <textarea id="appFormFeatures" rows="3" placeholder="اكتب كل ميزة في سطر منفصل، مثال:&#10;طباعة بمقاس 1:1 الحقيقي دون تشويه&#10;يعمل بالكامل بدون إنترنت (Offline)&#10;نقل لاسلكي عبر مسح الباركود QR&#10;وضع توفير الحبر الذكي"></textarea>
+              <small style="color:var(--muted);font-size:0.75rem;">تظهر هذه النقاط مرتبة في قسم «المزايا والتقنيات» داخل صفحة التطبيق.</small>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
               <div class="form-field">
                 <label>رقم الإصدار</label>
-                <input type="text" id="appFormVersion" placeholder="V 2.1.8" dir="ltr">
+                <input type="text" id="appFormVersion" placeholder="2.1.8" dir="ltr">
               </div>
               <div class="form-field">
-                <label>حجم الملف (اختياري)</label>
-                <input type="text" id="appFormSize" placeholder="مثال: 15 MB" dir="ltr">
+                <label>حجم الملف</label>
+                <input type="text" id="appFormSize" placeholder="15 MB" dir="ltr">
+              </div>
+              <div class="form-field">
+                <label>الترخيص</label>
+                <input type="text" id="appFormPrice" placeholder="مجاني" value="مجاني">
               </div>
             </div>
 
             <!-- Download Links (Drive vs PWA) -->
             <div class="form-field">
-              <label>رابط تحميل التطبيق (جوجل درايف أو رابط مباشر) 📥</label>
+              <label>رابط تحميل التطبيق المباشر (جوجل درايف أو رابط مباشر) 📥</label>
               <input type="url" id="appFormDownloadUrl" placeholder="https://drive.google.com/... أو رابط مباشر" dir="ltr">
-              <small style="color:var(--muted);font-size:0.75rem;margin-top:2px;">سيظهر للمستخدم زر «تحميل التطبيق الآن» باللون الأخضر المميز.</small>
+              <small style="color:var(--muted);font-size:0.75rem;">سيظهر للمستخدم زر «تحميل التطبيق الآن» باللون الأخضر المميز.</small>
             </div>
 
             <div class="form-field">
               <label>رابط فتح التطبيق كمتصفح (PWA / Web) 🌐 [اختياري]</label>
-              <input type="url" id="appFormWebUrl" placeholder="https://... رابط التطبيق كمتصفح إن وُجد" dir="ltr">
-              <small style="color:var(--muted);font-size:0.75rem;margin-top:2px;">إذا أضفت رابط المتصفح، سيظهر بجانب زر التحميل زر ثانٍ «فتح التطبيق كمتصفح».</small>
+              <input type="url" id="appFormWebUrl" placeholder="https://... رابط المتصفح إن وُجد" dir="ltr">
+              <small style="color:var(--muted);font-size:0.75rem;">إذا أضفت رابط المتصفح، سيظهر بجانب زر التحميل زر ثانٍ «فتح التطبيق كمتصفح».</small>
+            </div>
+
+            <!-- Privacy Note -->
+            <div class="form-field">
+              <label>ملاحظة الخصوصية والأمان (اختياري)</label>
+              <textarea id="appFormPrivacy" rows="2" placeholder="مثال: تُعالج البيانات محلياً داخل جهازك ولا تُرفع إلى أي خادم..."></textarea>
             </div>
 
             <!-- Screenshots Gallery Upload -->
@@ -253,8 +310,11 @@
     const categoryInput = overlay.querySelector('#appFormCategory');
     const summaryInput = overlay.querySelector('#appFormSummary');
     const descInput = overlay.querySelector('#appFormDesc');
+    const featuresInput = overlay.querySelector('#appFormFeatures');
     const versionInput = overlay.querySelector('#appFormVersion');
     const sizeInput = overlay.querySelector('#appFormSize');
+    const priceInput = overlay.querySelector('#appFormPrice');
+    const privacyInput = overlay.querySelector('#appFormPrivacy');
     const dlUrlInput = overlay.querySelector('#appFormDownloadUrl');
     const webUrlInput = overlay.querySelector('#appFormWebUrl');
     const screenshotsFileInput = overlay.querySelector('#appFormScreenshotsFile');
@@ -262,6 +322,7 @@
     const screenshotUrlInput = overlay.querySelector('#appFormScreenshotUrlInput');
     const addScreenshotUrlBtn = overlay.querySelector('#appFormAddScreenshotUrlBtn');
     const screenshotsPreview = overlay.querySelector('#appFormScreenshotsPreview');
+    const platformCheckboxes = overlay.querySelectorAll('.app-platform-cb');
 
     let currentScreenshots = [];
 
@@ -340,17 +401,26 @@
       categoryInput.value = existingApp.category || 'أدوات';
       summaryInput.value = existingApp.summary || '';
       descInput.value = existingApp.description || existingApp.catalogDescription || '';
+      featuresInput.value = safeArray(existingApp.features).join('\n');
+      priceInput.value = existingApp.priceLabel || 'مجاني';
+      privacyInput.value = existingApp.privacyNote || '';
+
+      // Set platforms
+      const savedPlatforms = (safeArray(existingApp.platforms).length ? existingApp.platforms : ['android', 'windows']).map(p => p.toLowerCase());
+      platformCheckboxes.forEach(cb => {
+        cb.checked = savedPlatforms.includes(cb.value.toLowerCase());
+      });
 
       const releases = safeArray(existingApp.releases);
       const dlRel = releases.find(r => r.downloadUrl && r.format !== 'pwa' && r.platform !== 'web')
         || releases.find(r => r.downloadUrl && !r.downloadUrl.includes('web'));
       const webRel = releases.find(r => r.downloadUrl && (r.format === 'pwa' || r.platform === 'web'));
 
-      versionInput.value = dlRel?.version || webRel?.version || existingApp.version || '1.0.0';
-      if (versionInput.value === '[نص مؤقت]') versionInput.value = '1.0.0';
-      sizeInput.value = dlRel?.fileSizeLabel || '';
-      dlUrlInput.value = dlRel?.downloadUrl || dlRel?.download_url || '';
-      webUrlInput.value = webRel?.downloadUrl || webRel?.download_url || '';
+      const currentVer = existingApp.version || dlRel?.version || webRel?.version || '1.0.0';
+      versionInput.value = currentVer !== '[نص مؤقت]' ? currentVer : '1.0.0';
+      sizeInput.value = existingApp.fileSizeLabel || dlRel?.fileSizeLabel || '';
+      dlUrlInput.value = existingApp.downloadUrl || dlRel?.downloadUrl || dlRel?.download_url || '';
+      webUrlInput.value = existingApp.webUrl || webRel?.downloadUrl || webRel?.download_url || '';
 
       currentScreenshots = safeArray(existingApp.screenshots).map(s => typeof s === 'string' ? { src: s } : s);
       renderScreenshotPreviews();
@@ -362,6 +432,8 @@
       iconInput.value = '⚡';
       updateIconPreview('⚡');
       versionInput.value = '1.0.0';
+      priceInput.value = 'مجاني';
+      platformCheckboxes.forEach(cb => { cb.checked = cb.value === 'android' || cb.value === 'windows'; });
       currentScreenshots = [];
       renderScreenshotPreviews();
     }
@@ -378,6 +450,25 @@
         const client = globalThis.SpaceBackend?.client;
         if (!client) throw new Error('الاتصال بقاعدة البيانات غير متوفر');
 
+        const selectedPlatforms = Array.from(overlay.querySelectorAll('.app-platform-cb:checked')).map(cb => cb.value);
+        if (!selectedPlatforms.length) selectedPlatforms.push('android');
+
+        const v = versionInput.value.trim() || '1.0.0';
+        const dl = dlUrlInput.value.trim();
+        const web = webUrlInput.value.trim();
+        const sz = sizeInput.value.trim();
+        const prc = priceInput.value.trim() || 'مجاني';
+        const priv = privacyInput.value.trim();
+        const feats = featuresInput.value.split('\n').map(s => s.trim()).filter(Boolean);
+
+        const appTags = [
+          ...selectedPlatforms,
+          `v:${v}`,
+          ...(dl ? [`dl:${dl}`] : []),
+          ...(web ? [`web:${web}`] : []),
+          ...(sz ? [`sz:${sz}`] : [])
+        ];
+
         const appData = {
           name: nameInput.value.trim(),
           slug: slugInput.value.trim().toLowerCase().replace(/\s+/g, '-'),
@@ -386,6 +477,10 @@
           summary: summaryInput.value.trim(),
           description: descInput.value.trim(),
           catalog_description: summaryInput.value.trim(),
+          features: feats,
+          price_label: prc,
+          privacy_note: priv || null,
+          tags: appTags,
           screenshots: currentScreenshots,
           status: 'published',
           is_demo: false
@@ -412,11 +507,6 @@
           notify('تم نشر التطبيق الجديد بنجاح! 🚀');
         }
 
-        const v = versionInput.value.trim() || '1.0.0';
-        const dl = dlUrlInput.value.trim();
-        const web = webUrlInput.value.trim();
-        const sz = sizeInput.value.trim();
-
         if (savedApp?.id) {
           try {
             const { data: existingRels } = await client.from('releases').select('*').eq('app_id', savedApp.id);
@@ -428,7 +518,7 @@
               const relData = {
                 app_id: savedApp.id,
                 version: v,
-                platform: 'android',
+                platform: selectedPlatforms.includes('android') ? 'android' : selectedPlatforms[0],
                 format: dl.includes('drive.google.com') ? 'drive' : 'apk',
                 download_url: dl
               };
@@ -537,7 +627,11 @@
   function renderAppCard(app, compact = false) {
     const release = latestRelease(app);
     const article = make('article', 'app-card');
-    article.dataset.platforms = safeArray(app.releases).map(item => item?.platform).filter(value => typeof value === 'string' && value).join(' ');
+    const appPlatforms = safeArray(app.platforms).length
+      ? app.platforms
+      : safeArray(app.releases).map(item => item?.platform).filter(Boolean);
+    const effectivePlatforms = appPlatforms.length ? appPlatforms : ['android'];
+    article.dataset.platforms = effectivePlatforms.map(p => String(p).toLowerCase()).join(' ');
     article.dataset.name = typeof app.name === 'string' ? app.name : '';
     article.dataset.summary = typeof app.summary === 'string' ? app.summary : '';
 
@@ -548,9 +642,10 @@
     symbolSpan.append(renderAppIcon(app.icon, app.name));
     heading.append(symbolSpan);
 
-    let platLabel = getPlatformLabel(release);
-    if (!platLabel && release?.downloadUrl) {
-      platLabel = release.downloadUrl.includes('drive.google.com') ? 'Google Drive' : 'تحميل مباشر';
+    let platLabel = effectivePlatforms.map(p => platformNames[p.toLowerCase()] || p).join(' · ');
+    if (!platLabel && release) platLabel = getPlatformLabel(release);
+    if (!platLabel && app.downloadUrl) {
+      platLabel = app.downloadUrl.includes('drive.google.com') ? 'Google Drive' : 'تحميل مباشر';
     }
     if (platLabel) heading.append(make('span', 'pill', platLabel));
     article.append(heading);
@@ -568,10 +663,12 @@
 
     if (!compact) {
       const meta = make('div', 'card-meta');
-      if (release?.version && release.version !== '[نص مؤقت]') {
-        meta.append(make('span', '', `الإصدار ${release.version}`));
+      const effVer = (app.version && app.version !== '[نص مؤقت]') ? app.version : release?.version;
+      if (effVer && effVer !== '[نص مؤقت]') {
+        meta.append(make('span', '', `الإصدار ${effVer}`));
       }
-      if (release?.fileSizeLabel) meta.append(make('span', '', release.fileSizeLabel));
+      const effSize = app.fileSizeLabel || release?.fileSizeLabel;
+      if (effSize) meta.append(make('span', '', effSize));
       if (release?.catalogMetaLabel) meta.append(make('span', '', release.catalogMetaLabel));
       article.append(meta);
 
@@ -818,7 +915,13 @@
     const detailIcon = byId('detailIcon');
     if (detailIcon) detailIcon.replaceChildren(renderAppIcon(app.icon, app.name));
 
-    setText('detailPlatform', '');
+    const appPlatforms = safeArray(app.platforms).length
+      ? app.platforms
+      : safeArray(app.releases).map(r => r?.platform).filter(Boolean);
+    const effectivePlatforms = appPlatforms.length ? appPlatforms : ['android'];
+    const platArabicText = effectivePlatforms.map(p => platformArabic[p.toLowerCase()] || platformNames[p.toLowerCase()] || p).join('، ');
+
+    setText('detailPlatform', platArabicText);
     setText('detailCategory', app.category ? `التصنيف: ${app.category}` : '');
     setText('detailTitle', app.name || '');
     setText('crumbApp', app.name || 'التفاصيل');
@@ -830,7 +933,12 @@
     document.title = `${app.name || 'تفاصيل التطبيق'} — مساحة`;
 
     const features = byId('featureList');
-    if (features) features.replaceChildren(...safeArray(app.features).map(feature => make('li', '', feature)));
+    if (features) {
+      const featList = safeArray(app.features).filter(f => typeof f === 'string' && f.trim());
+      const featPanel = features.closest('.content-panel');
+      if (featPanel) featPanel.hidden = (featList.length === 0);
+      features.replaceChildren(...featList.map(feature => make('li', '', feature)));
+    }
 
     const privacyPanel = byId('privacyPanel');
     if (privacyPanel) {
@@ -878,32 +986,35 @@
       || (releases.length === 1 && releases[0].downloadUrl ? releases[0] : null);
     const webRel = releases.find(r => r.downloadUrl && (r.format === 'pwa' || r.platform === 'web' || r.format === 'html'));
 
+    const effectiveDl = app.downloadUrl || dlRel?.downloadUrl || null;
+    const effectiveWeb = app.webUrl || webRel?.downloadUrl || null;
+
     // Dynamic Action Buttons: Drive Download and/or Web PWA
     const buttonsContainer = byId('detailButtonsContainer') || detailHero.querySelector('.detail-buttons');
     if (buttonsContainer) {
       buttonsContainer.replaceChildren();
 
-      if (dlRel?.downloadUrl) {
+      if (effectiveDl) {
         const dlBtn = make('a', 'button primary', 'تحميل التطبيق الآن ');
         dlBtn.id = 'downloadButton';
-        dlBtn.href = dlRel.downloadUrl;
+        dlBtn.href = effectiveDl;
         dlBtn.target = '_blank';
         dlBtn.rel = 'noopener noreferrer';
         dlBtn.append(make('span', '', '↓'));
         buttonsContainer.append(dlBtn);
       }
 
-      if (webRel?.downloadUrl) {
+      if (effectiveWeb) {
         const webBtn = make('a', 'button secondary', 'فتح التطبيق كمتصفح ');
         webBtn.id = 'webAppButton';
-        webBtn.href = webRel.downloadUrl;
+        webBtn.href = effectiveWeb;
         webBtn.target = '_blank';
         webBtn.rel = 'noopener noreferrer';
         webBtn.append(make('span', '', '↗'));
         buttonsContainer.append(webBtn);
       }
 
-      if (!dlRel?.downloadUrl && !webRel?.downloadUrl) {
+      if (!effectiveDl && !effectiveWeb) {
         const emptyBtn = make('button', 'button primary', 'الرابط غير متاح حالياً');
         emptyBtn.disabled = true;
         buttonsContainer.append(emptyBtn);
@@ -916,32 +1027,29 @@
     }
 
     // Sidebar Specs (Clean without dummy [نص مؤقت] values)
-    const activeRel = dlRel || webRel || releases[0];
-    const hasDrive = Boolean(dlRel?.downloadUrl?.includes('drive.google.com') || activeRel?.downloadUrl?.includes('drive.google.com'));
-    const hasWeb = Boolean(webRel?.downloadUrl);
-    const hasDl = Boolean(dlRel?.downloadUrl);
-
-    let platText = 'متعدد المنصات';
-    if (hasDl && hasWeb) platText = 'أندرويد و ويب';
-    else if (hasDl) platText = 'أندرويد';
-    else if (hasWeb) platText = 'ويب (متصفح)';
-    else if (activeRel?.platform) platText = platformNames[activeRel.platform] || activeRel.platform;
+    const hasDrive = Boolean((effectiveDl && effectiveDl.includes('drive.google.com')) || (dlRel?.downloadUrl && dlRel.downloadUrl.includes('drive.google.com')));
+    const hasWeb = Boolean(effectiveWeb);
+    const hasDl = Boolean(effectiveDl);
 
     let formatText = 'مباشر';
     if (hasDrive) formatText = 'Google Drive';
-    else if (hasWeb && !hasDl) formatText = 'PWA / ويب';
-    else if (activeRel?.format) formatText = formatNames[activeRel.format] || activeRel.format;
+    else if (hasWeb && !hasDl) formatText = 'PWA / متصفح';
+    else if (dlRel?.format) formatText = formatNames[dlRel.format] || dlRel.format;
 
-    const verText = (activeRel?.version && activeRel.version !== '[نص مؤقت]') ? activeRel.version : (app.version || '1.0.0');
+    const verText = (app.version && app.version !== '[نص مؤقت]')
+      ? app.version
+      : ((dlRel?.version && dlRel.version !== '[نص مؤقت]') ? dlRel.version : '1.0.0');
 
-    setText('specPlatform', platText);
+    const sizeText = app.fileSizeLabel || dlRel?.fileSizeLabel || '—';
+
+    setText('specPlatform', platArabicText);
     setText('specFormat', formatText);
     setText('specVersion', verText);
-    setText('specSize', activeRel?.fileSizeLabel || '—');
+    setText('specSize', sizeText);
     setText('specPrice', app.priceLabel || 'مجاني');
 
     const unavailableNotice = byId('downloadUnavailable');
-    const hasAnyLink = Boolean(dlRel?.downloadUrl || webRel?.downloadUrl);
+    const hasAnyLink = Boolean(effectiveDl || effectiveWeb);
     if (unavailableNotice) {
       const noticeCard = unavailableNotice.closest('.notice') || unavailableNotice.parentElement;
       if (noticeCard) noticeCard.hidden = hasAnyLink;
@@ -952,23 +1060,26 @@
     const releaseList = byId('releaseList');
     if (releaseList) {
       releaseList.replaceChildren();
-      if (releases.length === 0) {
+      const displayReleases = releases.filter(r => r.downloadUrl);
+      if (displayReleases.length === 0) {
         if (releasePanel) releasePanel.hidden = true;
       } else {
         if (releasePanel) releasePanel.hidden = false;
-        releases.forEach((release) => {
+        displayReleases.forEach((release) => {
           const card = make('article', 'release-card selected');
           const option = make('div', 'release-option');
           const isDrive = release.downloadUrl?.includes('drive.google.com');
           const isWeb = release.format === 'pwa' || release.platform === 'web';
-          const platLabel = isWeb ? 'نسخة المتصفح (PWA)' : (isDrive ? 'أندرويد (Google Drive)' : (platformNames[release.platform] || release.platform || 'تطبيق'));
+          const platLabel = isWeb ? 'نسخة المتصفح (PWA)' : (isDrive ? 'تحميل (Google Drive)' : (platformArabic[release.platform] || platformNames[release.platform] || release.platform || 'تطبيق'));
 
           const details = make('span', 'release-meta');
           details.append(make('span', '', platLabel));
-          if (release.version && release.version !== '[نص مؤقت]') {
-            details.append(make('span', '', `الإصدار ${release.version}`));
+          const relVer = (release.version && release.version !== '[نص مؤقت]') ? release.version : app.version;
+          if (relVer && relVer !== '[نص مؤقت]') {
+            details.append(make('span', '', `الإصدار ${relVer}`));
           }
-          if (release.fileSizeLabel) details.append(make('span', '', release.fileSizeLabel));
+          const relSize = release.fileSizeLabel || app.fileSizeLabel;
+          if (relSize) details.append(make('span', '', relSize));
           option.append(details);
 
           if (release.downloadUrl) {

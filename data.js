@@ -75,6 +75,63 @@ function mapRelease(row) {
 }
 
 function mapApp(row, releases = []) {
+  const tagsList = readList(firstValue(row, 'tags'));
+
+  // Extract download link, web link, version, size from tags
+  const dlTag = tagsList.find(t => typeof t === 'string' && t.startsWith('dl:'));
+  const webTag = tagsList.find(t => typeof t === 'string' && t.startsWith('web:'));
+  const verTag = tagsList.find(t => typeof t === 'string' && t.startsWith('v:'));
+  const sizeTag = tagsList.find(t => typeof t === 'string' && t.startsWith('sz:'));
+
+  const dlUrl = dlTag ? dlTag.slice(3).trim() : null;
+  const webUrl = webTag ? webTag.slice(4).trim() : null;
+  const verVal = verTag ? verTag.slice(2).trim() : '';
+  const sizeVal = sizeTag ? sizeTag.slice(3).trim() : '';
+
+  const knownPlatforms = ['android', 'windows', 'web', 'ios', 'mac', 'linux'];
+  const platforms = tagsList.filter(t => typeof t === 'string' && knownPlatforms.includes(t.toLowerCase()));
+
+  let appReleases = [...releases];
+  if (!appReleases.length && (dlUrl || webUrl || verVal)) {
+    if (dlUrl) {
+      appReleases.push({
+        id: 'synth-dl',
+        appId: row.id,
+        platform: platforms.includes('android') ? 'android' : (platforms[0] || 'android'),
+        format: dlUrl.includes('drive.google.com') ? 'drive' : 'apk',
+        version: verVal || '1.0.0',
+        fileSizeLabel: sizeVal,
+        downloadUrl: dlUrl
+      });
+    }
+    if (webUrl) {
+      appReleases.push({
+        id: 'synth-web',
+        appId: row.id,
+        platform: 'web',
+        format: 'pwa',
+        version: verVal || '1.0.0',
+        fileSizeLabel: sizeVal,
+        downloadUrl: webUrl
+      });
+    }
+  } else if (appReleases.length) {
+    if (dlUrl && !appReleases.some(r => r.downloadUrl)) {
+      appReleases[0].downloadUrl = dlUrl;
+    }
+    if (verVal && (!appReleases[0].version || appReleases[0].version === '[نص مؤقت]')) {
+      appReleases[0].version = verVal;
+    }
+    if (sizeVal && !appReleases[0].fileSizeLabel) {
+      appReleases[0].fileSizeLabel = sizeVal;
+    }
+  }
+
+  const activeRelease = appReleases.find(r => r.downloadUrl && r.format !== 'pwa')
+    || appReleases.find(r => r.downloadUrl)
+    || appReleases[0]
+    || null;
+
   return {
     id: firstValue(row, 'id'),
     slug: firstValue(row, 'slug'),
@@ -90,14 +147,19 @@ function mapApp(row, releases = []) {
       if (!item || typeof item !== 'object') return null;
       return { ...item, src: firstValue(item, 'src', 'url') || '' };
     }).filter(Boolean),
-    tags: readList(firstValue(row, 'tags')),
+    tags: tagsList,
+    platforms: platforms.length ? platforms : ['android'],
     features: readList(firstValue(row, 'features')),
-    priceLabel: firstValue(row, 'price_label', 'priceLabel'),
+    priceLabel: firstValue(row, 'price_label', 'priceLabel') || 'مجاني',
+    version: verVal || activeRelease?.version || '1.0.0',
+    downloadUrl: dlUrl || activeRelease?.downloadUrl || null,
+    webUrl: webUrl || appReleases.find(r => r.downloadUrl && (r.format === 'pwa' || r.platform === 'web'))?.downloadUrl || null,
+    fileSizeLabel: sizeVal || activeRelease?.fileSizeLabel || '',
     status: firstValue(row, 'status') || '',
     featured: row?.featured === true,
     createdAt: firstValue(row, 'created_at', 'createdAt'),
     updatedAt: firstValue(row, 'updated_at', 'updatedAt'),
-    releases,
+    releases: appReleases,
     isDemo: row?.is_demo === true
   };
 }
@@ -165,7 +227,13 @@ async function fetchPublicPosts() {
 async function getApps({ platform = 'all', search = '', limit } = {}) {
   let apps = await fetchPublicApps();
   const query = typeof search === 'string' ? search.trim().toLocaleLowerCase('ar') : '';
-  if (platform !== 'all') apps = apps.filter(app => app.releases.some(release => release.platform === platform));
+  if (platform !== 'all') {
+    apps = apps.filter(app => {
+      const pList = safeArray(app.platforms).map(p => p.toLowerCase());
+      const rList = safeArray(app.releases).map(r => r.platform?.toLowerCase());
+      return pList.includes(platform.toLowerCase()) || rList.includes(platform.toLowerCase());
+    });
+  }
   if (query) apps = apps.filter(app => `${app.name} ${app.summary} ${app.description}`.toLocaleLowerCase('ar').includes(query));
   if (Number.isInteger(limit) && limit >= 0) apps = apps.slice(0, limit);
   return apps;
