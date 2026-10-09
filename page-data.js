@@ -1033,8 +1033,29 @@
         .select('*')
         .eq('post_id', post.id)
         .order('created_at', { ascending: true })
-        .then(({ data }) => {
+        .then(async ({ data }) => {
           if (Array.isArray(data)) {
+            // Auto-sync any local comments that were not saved to Supabase yet
+            const unsyncedComments = postComments.filter(lc => 
+              !data.some(dc => dc.user_name === lc.user_name && dc.comment_text === lc.comment_text)
+            );
+            if (unsyncedComments.length > 0) {
+              for (const un of unsyncedComments) {
+                try {
+                  const { data: syncedC } = await globalThis.SpaceBackend.client
+                    .from('post_comments')
+                    .insert([{
+                      post_id: post.id,
+                      user_name: un.user_name,
+                      comment_text: un.comment_text,
+                      created_at: un.created_at
+                    }])
+                    .select();
+                  if (syncedC && syncedC[0]) data.push(syncedC[0]);
+                } catch(e) {}
+              }
+            }
+
             const map = new Map();
             data.forEach(c => map.set(c.id || `${c.user_name}_${c.comment_text}`, c));
             postComments.forEach(c => {
@@ -1399,6 +1420,30 @@
             .order('created_at', { ascending: false });
 
           if (!error && Array.isArray(data)) {
+            // Auto-sync any local reviews that were not saved to Supabase yet
+            const unsynced = local.filter(lr => 
+              !data.some(dr => dr.user_name === lr.user_name && dr.review_text === lr.review_text)
+            );
+            if (unsynced.length > 0) {
+              for (const un of unsynced) {
+                try {
+                  const { data: synced } = await globalThis.SpaceBackend.client
+                    .from('app_reviews')
+                    .insert([{
+                      app_id: app.id,
+                      user_name: un.user_name,
+                      rating: Number(un.rating) || 5,
+                      review_text: un.review_text,
+                      created_at: un.created_at
+                    }])
+                    .select();
+                  if (synced && synced[0]) {
+                    data.unshift(synced[0]);
+                  }
+                } catch(e) {}
+              }
+            }
+
             const map = new Map();
             data.forEach(r => map.set(r.id || `${r.user_name}_${r.review_text}`, r));
             local.forEach(r => {
