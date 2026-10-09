@@ -58,12 +58,12 @@
       overlay = make('div', 'modal-overlay');
       overlay.id = 'appEditModalOverlay';
       overlay.innerHTML = `
-        <div class="modal-dialog" style="max-width:540px;width:92%;" role="dialog">
-          <div class="modal-header">
-            <h3 id="appModalHeading">إضافة تطبيق جديد 🚀</h3>
-            <button class="modal-close" id="appModalClose">✕</button>
+        <div class="modal-dialog" style="max-width:540px;width:94%;max-height:85vh;overflow-y:auto;overscroll-behavior:contain;padding:22px;display:flex;flex-direction:column;box-sizing:border-box;" role="dialog">
+          <div class="modal-header" style="margin-bottom:12px;">
+            <h3 id="appModalHeading" style="font-size:1.15rem;">إضافة تطبيق جديد 🚀</h3>
+            <button class="modal-close" id="appModalClose" type="button" aria-label="إغلاق">✕</button>
           </div>
-          <form id="appModalForm" class="contact-form" style="margin-top:14px;">
+          <form id="appModalForm" class="contact-form" style="margin-top:0;display:flex;flex-direction:column;gap:12px;">
             <div class="form-field">
               <label>اسم التطبيق *</label>
               <input type="text" id="appFormName" required placeholder="مثال: تطبيق معاملتي">
@@ -110,18 +110,24 @@
                 <input type="url" id="appFormDownloadUrl" placeholder="https://..." dir="ltr">
               </div>
             </div>
-            <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end;">
-              <button type="button" class="button secondary" id="appModalCancel">إلغاء</button>
-              <button type="submit" class="button primary" id="appModalSubmit">حفظ ونشر التطبيق 💾</button>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--surface);display:flex;gap:10px;justify-content:flex-end;z-index:5;">
+              <button type="button" class="button secondary" id="appModalCancel" style="padding:8px 16px;">إلغاء</button>
+              <button type="submit" class="button primary" id="appModalSubmit" style="padding:8px 18px;">حفظ ونشر التطبيق 💾</button>
             </div>
           </form>
         </div>
       `;
       document.body.appendChild(overlay);
 
-      overlay.querySelector('#appModalClose')?.addEventListener('click', () => overlay.classList.remove('open'));
-      overlay.querySelector('#appModalCancel')?.addEventListener('click', () => overlay.classList.remove('open'));
-      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
+      const closeModal = () => {
+        overlay.classList.remove('open');
+        document.body.classList.remove('modal-open');
+        document.documentElement.classList.remove('modal-open');
+      };
+
+      overlay.querySelector('#appModalClose')?.addEventListener('click', closeModal);
+      overlay.querySelector('#appModalCancel')?.addEventListener('click', closeModal);
+      overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
     }
 
     const heading = overlay.querySelector('#appModalHeading');
@@ -147,7 +153,7 @@
       descInput.value = existingApp.description || existingApp.catalogDescription || '';
       const release = latestRelease(existingApp);
       platformInput.value = release?.platform || 'android';
-      versionInput.value = release?.version || '';
+      versionInput.value = release?.version && release.version !== '[نص مؤقت]' ? release.version : '1.0.0';
       urlInput.value = release?.downloadUrl || release?.download_url || '';
     } else {
       heading.textContent = 'إضافة تطبيق جديد 🚀';
@@ -184,34 +190,53 @@
         };
 
         let savedApp = null;
-        if (existingApp?.id) {
-          const { data, error } = await client.from('apps').update(appData).eq('id', existingApp.id).select().single();
+        const targetId = existingApp?.id;
+        const targetSlug = existingApp?.slug || appData.slug;
+
+        if (targetId) {
+          const { data, error } = await client.from('apps').update(appData).eq('id', targetId).select();
           if (error) throw error;
-          savedApp = data;
+          savedApp = data?.[0] || { id: targetId, slug: appData.slug };
+          notify('تم تحديث بيانات التطبيق بنجاح! ✅');
+        } else if (existingApp?.slug) {
+          const { data, error } = await client.from('apps').update(appData).eq('slug', existingApp.slug).select();
+          if (error) throw error;
+          savedApp = data?.[0] || { slug: targetSlug };
           notify('تم تحديث بيانات التطبيق بنجاح! ✅');
         } else {
-          const { data, error } = await client.from('apps').insert(appData).select().single();
+          const { data, error } = await client.from('apps').insert([appData]).select();
           if (error) throw error;
-          savedApp = data;
+          savedApp = data?.[0] || appData;
           notify('تم نشر التطبيق الجديد بنجاح! 🚀');
         }
 
         const v = versionInput.value.trim();
         const dl = urlInput.value.trim();
         if (savedApp?.id && (v || dl)) {
-          const relData = {
-            app_id: savedApp.id,
-            app_slug: savedApp.slug,
-            version: v || '1.0.0',
-            platform: platformInput.value,
-            format: platformInput.value === 'android' ? 'apk' : platformInput.value === 'windows' ? 'exe' : 'pwa',
-            download_url: dl || '#',
-            changelog: 'الإصدار الأولي'
-          };
-          await client.from('releases').upsert(relData, { onConflict: 'app_id,version' }).catch(() => {});
+          try {
+            const plat = platformInput.value || 'android';
+            const fmt = plat === 'android' ? 'apk' : plat === 'windows' ? 'exe' : 'pwa';
+            const relData = {
+              app_id: savedApp.id,
+              version: v || '1.0.0',
+              platform: plat,
+              format: fmt,
+              download_url: dl || null
+            };
+            const { data: existingRels } = await client.from('releases').select('id').eq('app_id', savedApp.id).limit(1);
+            if (existingRels && existingRels.length > 0) {
+              await client.from('releases').update(relData).eq('id', existingRels[0].id);
+            } else {
+              await client.from('releases').insert([relData]);
+            }
+          } catch (relErr) {
+            console.warn('Releases sync notice:', relErr);
+          }
         }
 
         overlay.classList.remove('open');
+        document.body.classList.remove('modal-open');
+        document.documentElement.classList.remove('modal-open');
         setTimeout(() => location.reload(), 500);
       } catch (err) {
         notify(`تعذّر حفظ التطبيق: ${err.message || 'حدث خطأ'}`);
@@ -224,6 +249,8 @@
     };
 
     overlay.classList.add('open');
+    document.body.classList.add('modal-open');
+    document.documentElement.classList.add('modal-open');
   }
 
   async function deleteApp(app, cardNode) {
