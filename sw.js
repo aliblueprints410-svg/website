@@ -1,4 +1,4 @@
-const CACHE_NAME = 'space-cache-v4';
+const CACHE_NAME = 'space-cache-v5';
 const ASSETS = [
   '/',
   '/index.html',

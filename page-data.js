@@ -1501,24 +1501,6 @@
       let platform = 'all';
       let selectedCategory = 'all';
 
-      // Dynamically add categories found in apps to category bar
-      const catFiltersContainer = byId('categoryFilters');
-      if (catFiltersContainer) {
-        const existingCatBtns = new Set(
-          Array.from(catFiltersContainer.querySelectorAll('button[data-category]'))
-            .map(b => (b.dataset.category || '').toLowerCase())
-        );
-        apps.forEach(a => {
-          const cat = (a.category || '').trim();
-          if (cat && !existingCatBtns.has(cat.toLowerCase())) {
-            existingCatBtns.add(cat.toLowerCase());
-            const newCatBtn = make('button', 'filter', `📁 ${cat}`);
-            newCatBtn.dataset.category = cat;
-            catFiltersContainer.append(newCatBtn);
-          }
-        });
-      }
-
       const updateVisibleApps = () => {
         const query = search?.value.trim().toLocaleLowerCase('ar') || '';
         let visibleCount = 0;
@@ -1538,24 +1520,101 @@
         setHidden('appSearchEmpty', visibleCount > 0);
       };
 
-      // Platform filter clicks (toolbar filters)
-      document.querySelectorAll('.toolbar .filters .filter').forEach(button => button.addEventListener('click', () => {
-        document.querySelectorAll('.toolbar .filters .filter').forEach(filter => filter.classList.remove('active'));
-        button.classList.add('active');
-        platform = button.dataset.filter || 'all';
-        updateVisibleApps();
-      }));
+      // 1. Build Platform Filters dynamically (ONLY platforms with at least 1 app)
+      const platformCounts = new Map();
+      apps.forEach(app => {
+        const appPlatforms = safeArray(app.platforms).length
+          ? app.platforms
+          : safeArray(app.releases).map(item => item?.platform).filter(Boolean);
+        const effective = appPlatforms.length ? appPlatforms : ['android'];
+        effective.forEach(p => {
+          const key = String(p).toLowerCase().trim();
+          if (key) platformCounts.set(key, (platformCounts.get(key) || 0) + 1);
+        });
+      });
 
-      // Category filter clicks
-      if (catFiltersContainer) {
-        catFiltersContainer.addEventListener('click', (e) => {
-          const btn = e.target.closest('button[data-category]');
+      const platFilterContainer = byId('platformFilters') || document.querySelector('.toolbar .filters');
+      if (platFilterContainer) {
+        const allBtn = make('button', 'filter active');
+        allBtn.dataset.filter = 'all';
+        allBtn.innerHTML = `<span data-i18n="apps.filter_all">الكل</span> <span id="appCount">${apps.length}</span>`;
+        platFilterContainer.replaceChildren(allBtn);
+
+        const preferredOrder = ['android', 'windows', 'web', 'ios', 'mac', 'linux'];
+        const existingKeys = Array.from(platformCounts.keys()).sort((a, b) => {
+          const ia = preferredOrder.indexOf(a);
+          const ib = preferredOrder.indexOf(b);
+          return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+        });
+
+        existingKeys.forEach(pKey => {
+          const label = platformNames[pKey] || pKey.toUpperCase();
+          const pBtn = make('button', 'filter', label);
+          pBtn.dataset.filter = pKey;
+          platFilterContainer.append(pBtn);
+        });
+
+        platFilterContainer.addEventListener('click', (e) => {
+          const btn = e.target.closest('button[data-filter]');
           if (!btn) return;
-          catFiltersContainer.querySelectorAll('button[data-category]').forEach(filter => filter.classList.remove('active'));
+          platFilterContainer.querySelectorAll('button[data-filter]').forEach(b => b.classList.remove('active'));
           btn.classList.add('active');
-          selectedCategory = btn.dataset.category || 'all';
+          platform = btn.dataset.filter || 'all';
           updateVisibleApps();
         });
+      }
+
+      // 2. Build Category Filters dynamically (ONLY categories with at least 1 app)
+      const categoryIcons = {
+        'أدوات': '🛠️',
+        'تواصل اجتماعي': '💬',
+        'للأطفال': '👶',
+        'إنتاجية': '⚡',
+        'تعليم': '🎓',
+        'ألعاب': '🎮',
+        'تصميم': '🎨',
+        'أعمال': '💼',
+        'مال وأعمال': '💼',
+        'أخبار ومعلومات': '📰',
+        'صحة ولياقة': '🧘',
+        'إسلامي': '🕌',
+        'ترفيه': '🍿'
+      };
+
+      const categoryCounts = new Map();
+      apps.forEach(app => {
+        const cat = (app.category || '').trim();
+        if (cat) categoryCounts.set(cat, (categoryCounts.get(cat) || 0) + 1);
+      });
+
+      const catToolbar = byId('categoryToolbar');
+      const catFiltersContainer = byId('categoryFilters');
+
+      if (catFiltersContainer) {
+        if (categoryCounts.size === 0) {
+          if (catToolbar) catToolbar.style.display = 'none';
+        } else {
+          if (catToolbar) catToolbar.style.display = 'flex';
+          const allCatBtn = make('button', 'filter active', 'الكل');
+          allCatBtn.dataset.category = 'all';
+          catFiltersContainer.replaceChildren(allCatBtn);
+
+          categoryCounts.forEach((count, cat) => {
+            const icon = categoryIcons[cat] || '📁';
+            const catBtn = make('button', 'filter', `${icon} ${cat}`);
+            catBtn.dataset.category = cat;
+            catFiltersContainer.append(catBtn);
+          });
+
+          catFiltersContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-category]');
+            if (!btn) return;
+            catFiltersContainer.querySelectorAll('button[data-category]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedCategory = btn.dataset.category || 'all';
+            updateVisibleApps();
+          });
+        }
       }
 
       search?.addEventListener('input', updateVisibleApps);
