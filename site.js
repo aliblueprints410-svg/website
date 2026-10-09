@@ -598,23 +598,6 @@
     }
   });
 
-  feed?.addEventListener('submit', async event => {
-    if (!event.target.matches('.comment-form')) return;
-    if (event.defaultPrevented) return;
-    event.preventDefault();
-    const input = event.target.querySelector('input');
-    const value = input.value.trim();
-    if (!value) return;
-
-    const card = event.target.closest('.post-card');
-    const isOwnerUser = Boolean(window.isOwner);
-    const authorName = isOwnerUser ? '👑 علي محمد (المطور)' : getVisitorDisplayName();
-
-    const count = card?.querySelector('.comment-count');
-    if (count) count.textContent = Number(count.textContent || 0) + 1;
-    input.value = '';
-    toast(isOwnerUser ? 'تم نشر رد المطور بنجاح! 👑' : `تمت إضافة تعليقك كـ ${authorName}.`);
-  });
 
   // Clean up standalone PWA window title to prevent duplicate app name
   try {

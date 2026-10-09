@@ -1008,6 +1008,28 @@
       };
       commentActions.append(replyBtn);
 
+      if (window.isOwner && c.id) {
+        const delBtn = make('button', '', '🗑️');
+        delBtn.type = 'button';
+        delBtn.title = 'حذف هذا التعليق';
+        delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:0.75rem;color:#ef4444;padding:0 4px;margin-inline-start:auto;';
+        delBtn.onclick = async () => {
+          if (!confirm('حذف هذا التعليق نهائياً؟')) return;
+          try {
+            if (globalThis.SpaceBackend?.client && c.id) {
+              await globalThis.SpaceBackend.client.from('post_comments').delete().eq('id', c.id);
+            }
+            card.remove();
+            notify('تم حذف التعليق 🗑️');
+            postComments = postComments.filter(item => item.id !== c.id);
+            commentCount.textContent = postComments.length;
+          } catch(err) {
+            notify('تعذّر حذف التعليق');
+          }
+        };
+        commentActions.append(delBtn);
+      }
+
       bubble.append(head, bodyText, commentActions);
       card.append(av, bubble);
       return card;
@@ -1025,63 +1047,67 @@
       } catch(e) {}
     };
 
-    let postComments = getLocalComments();
-    if (postComments.length > 0) {
-      commentsList.replaceChildren(...postComments.map(renderCommentCard));
-      commentCount.textContent = postComments.length;
-    }
+    let postComments = [];
 
-    // Load existing comments from Supabase & merge
-    if (globalThis.SpaceBackend?.client && post.id) {
-      globalThis.SpaceBackend.client
-        .from('post_comments')
-        .select('*')
-        .eq('post_id', post.id)
-        .order('created_at', { ascending: true })
-        .then(async ({ data }) => {
-          if (Array.isArray(data)) {
-            // Auto-sync any local comments that were not saved to Supabase yet
-            const unsyncedComments = postComments.filter(lc => 
-              !data.some(dc => dc.user_name === lc.user_name && dc.comment_text === lc.comment_text)
-            );
-            if (unsyncedComments.length > 0) {
-              for (const un of unsyncedComments) {
-                try {
-                  const { data: syncedC } = await globalThis.SpaceBackend.client
-                    .from('post_comments')
-                    .insert([{
-                      post_id: post.id,
-                      user_name: un.user_name,
-                      comment_text: un.comment_text,
-                      created_at: un.created_at
-                    }])
-                    .select();
-                  if (syncedC && syncedC[0]) data.push(syncedC[0]);
-                } catch(e) {}
-              }
-            }
-
-            const map = new Map();
-            data.forEach(c => map.set(c.id || `${c.user_name}_${c.comment_text}`, c));
-            postComments.forEach(c => {
-              const k = c.id || `${c.user_name}_${c.comment_text}`;
-              if (!map.has(k)) map.set(k, c);
-            });
-            postComments = Array.from(map.values()).sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    const loadComments = async () => {
+      if (globalThis.SpaceBackend?.client && post.id) {
+        try {
+          const { data, error } = await globalThis.SpaceBackend.client
+            .from('post_comments')
+            .select('*')
+            .eq('post_id', post.id)
+            .order('created_at', { ascending: true });
+          if (!error && Array.isArray(data)) {
+            try { localStorage.removeItem(`space_post_comments_${post.id}`); } catch(e) {}
+            postComments = data;
             commentsList.replaceChildren(...postComments.map(renderCommentCard));
             commentCount.textContent = postComments.length;
+            return;
           }
-        }).catch(() => {});
-    }
+        } catch(e) {}
+      }
+
+      // Offline fallback only
+      postComments = getLocalComments();
+      if (postComments.length > 0) {
+        commentsList.replaceChildren(...postComments.map(renderCommentCard));
+        commentCount.textContent = postComments.length;
+      }
+    };
+    loadComments();
 
     commentForm.onsubmit = async (e) => {
       e.preventDefault();
+      e.stopImmediatePropagation();
       const text = commentInput.value.trim();
       if (!text) return;
 
       const isDev = Boolean(window.isOwner);
       const authorName = isDev ? '👑 علي محمد (المطور)' : getVisitorDisplayName();
+      commentInput.value = '';
 
+      if (globalThis.SpaceBackend?.client && post.id) {
+        try {
+          const { data, error } = await globalThis.SpaceBackend.client
+            .from('post_comments')
+            .insert([{
+              post_id: post.id,
+              user_name: authorName,
+              comment_text: text
+            }])
+            .select();
+          if (!error && Array.isArray(data) && data[0]) {
+            try { localStorage.removeItem(`space_post_comments_${post.id}`); } catch(e) {}
+            postComments.push(data[0]);
+            commentsList.append(renderCommentCard(data[0]));
+            commentCount.textContent = postComments.length;
+            notify(isDev ? 'تم نشر رد المطور بنجاح! 👑' : `تمت إضافة تعليقك بنجاح (${authorName}) ✨`);
+            return;
+          }
+        } catch(err) {}
+      }
+
+      // Offline fallback only
       const newC = {
         id: 'local_cmt_' + Date.now(),
         post_id: post.id,
@@ -1089,24 +1115,11 @@
         comment_text: text,
         created_at: new Date().toISOString()
       };
-
       saveLocalComment(newC);
       postComments.push(newC);
       commentsList.append(renderCommentCard(newC));
-      commentInput.value = '';
       commentCount.textContent = postComments.length;
-      notify(isDev ? 'تم نشر رد المطور بنجاح! 👑' : `تمت إضافة تعليقك بنجاح (${authorName}) ✨`);
-
-      if (globalThis.SpaceBackend?.client && post.id) {
-        try {
-          await globalThis.SpaceBackend.client.from('post_comments').insert([{
-            post_id: post.id,
-            user_name: authorName,
-            comment_text: newC.comment_text,
-            created_at: newC.created_at
-          }]);
-        } catch(err) {}
-      }
+      notify(isDev ? 'تم حفظ تعليقك محلياً! ✨' : `تمت إضافة تعليقك (${authorName}) ✨`);
     };
 
     commentsContainer.append(commentForm, commentsList);
@@ -1412,9 +1425,6 @@
 
     const fetchAppReviews = async () => {
       if (!reviewsList) return;
-      const local = getLocalReviews();
-      currentReviews = [...local];
-      updateRatingsUI(currentReviews);
 
       if (globalThis.SpaceBackend?.client && app?.id) {
         try {
@@ -1425,43 +1435,22 @@
             .order('created_at', { ascending: false });
 
           if (!error && Array.isArray(data)) {
-            // Auto-sync any local reviews that were not saved to Supabase yet
-            const unsynced = local.filter(lr => 
-              !data.some(dr => dr.user_name === lr.user_name && dr.review_text === lr.review_text)
-            );
-            if (unsynced.length > 0) {
-              for (const un of unsynced) {
-                try {
-                  const { data: synced } = await globalThis.SpaceBackend.client
-                    .from('app_reviews')
-                    .insert([{
-                      app_id: app.id,
-                      user_name: un.user_name,
-                      rating: Number(un.rating) || 5,
-                      review_text: un.review_text,
-                      created_at: un.created_at
-                    }])
-                    .select();
-                  if (synced && synced[0]) {
-                    data.unshift(synced[0]);
-                  }
-                } catch(e) {}
-              }
-            }
-
-            const map = new Map();
-            data.forEach(r => map.set(r.id || `${r.user_name}_${r.review_text}`, r));
-            local.forEach(r => {
-              const k = r.id || `${r.user_name}_${r.review_text}`;
-              if (!map.has(k)) map.set(k, r);
-            });
-            currentReviews = Array.from(map.values()).sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+            // Database is the sole source of truth!
+            // Clean up any stale local reviews so deleted reviews stay deleted and never duplicate
+            try { localStorage.removeItem(`space_app_reviews_${app.id}`); } catch(e) {}
+            currentReviews = data;
             updateRatingsUI(currentReviews);
+            return;
           }
         } catch (err) {
           console.warn('Reviews fetch:', err);
         }
       }
+
+      // Offline fallback only if network completely unavailable
+      const local = getLocalReviews();
+      currentReviews = [...local];
+      updateRatingsUI(currentReviews);
     };
 
     if (reviewsList) {
@@ -1511,39 +1500,42 @@
 
         const isDev = Boolean(window.isOwner);
         const authorName = isDev ? '👑 علي محمد (المطور)' : getVisitorDisplayName();
-
-        const newReview = {
-          id: 'local_rev_' + Date.now(),
-          app_id: app.id,
-          user_name: authorName,
-          rating: Number(starInput?.value || 5),
-          review_text: text,
-          created_at: new Date().toISOString()
-        };
-
+        const ratingVal = Number(starInput?.value || 5);
         commentInput.value = '';
 
-        // 1. Immediately save locally and update UI
-        saveLocalReview(newReview);
-        currentReviews.unshift(newReview);
-        updateRatingsUI(currentReviews);
-
-        notify(isDev ? 'تم نشر مراجعة المطور! 👑' : `شكراً لتقييمك (${authorName})! أُضيفت مراجعتك بنجاح. ⭐`);
-
-        // 2. Synchronize to Supabase in background
         if (globalThis.SpaceBackend?.client && app?.id) {
           try {
-            await globalThis.SpaceBackend.client.from('app_reviews').insert([{
+            const { error: insErr } = await globalThis.SpaceBackend.client.from('app_reviews').insert([{
               app_id: app.id,
               user_name: authorName,
-              rating: newReview.rating,
-              review_text: newReview.review_text,
-              created_at: newReview.created_at
+              rating: ratingVal,
+              review_text: text,
+              created_at: new Date().toISOString()
             }]);
+            if (insErr) throw insErr;
+
+            notify(isDev ? 'تم نشر مراجعة المطور! 👑' : `شكراً لتقييمك (${authorName})! أُضيفت مراجعتك بنجاح. ⭐`);
+            try { localStorage.removeItem(`space_app_reviews_${app.id}`); } catch(e) {}
+            await fetchAppReviews();
+            return;
           } catch(err) {
             console.warn('Reviews sync note:', err);
           }
         }
+
+        // Offline fallback only if network failed
+        const newReview = {
+          id: 'local_rev_' + Date.now(),
+          app_id: app.id,
+          user_name: authorName,
+          rating: ratingVal,
+          review_text: text,
+          created_at: new Date().toISOString()
+        };
+        saveLocalReview(newReview);
+        currentReviews.unshift(newReview);
+        updateRatingsUI(currentReviews);
+        notify(isDev ? 'تم حفظ مراجعة المطور محلياً! 👑' : `شكراً لتقييمك (${authorName})! أُضيفت مراجعتك. ⭐`);
       };
     }
 
@@ -2032,6 +2024,14 @@
       }
     });
   }
+  // Clear legacy cached reviews and comments so deleted items stay deleted and duplicates disappear
+  try {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('space_app_reviews_') || k.startsWith('space_post_comments_')) {
+        localStorage.removeItem(k);
+      }
+    });
+  } catch(e) {}
 
   loadSiteStats();
   loadFeaturedApps();
