@@ -408,10 +408,19 @@ async function getSiteStats() {
   // Calculate Total Feedback (post comments + app reviews)
   const totalFeedback = commentsCount + totalReviews;
 
+  // Calculate Satisfaction Rate (percentage of ratings >= 4):
+  let satisfactionRate = 100;
+  if (totalReviews > 0) {
+    const positiveReviews = reviews.filter(r => (Number(r.rating) || 5) >= 4).length;
+    satisfactionRate = Math.round((positiveReviews / totalReviews) * 100);
+  }
+
   return {
     appsCount: apps.length,
     avgRating: Number(avgRating),
     avgRatingFormatted: avgRating,
+    satisfactionRate: `${satisfactionRate}%`,
+    freeOpenRate: '100%',
     totalReviews,
     totalLikes,
     totalComments: totalFeedback,

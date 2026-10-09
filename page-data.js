@@ -1519,12 +1519,33 @@
 
       setStat('statApps', stats?.appsCount ?? 0);
 
+      const postsNode = byId('statPosts');
+      if (postsNode) {
+        const card = postsNode.closest('.quick-stats > div');
+        if (card) card.hidden = false;
+        postsNode.innerHTML = `📝 ${stats?.postsCount ?? 0}`;
+      }
+
       const ratingNode = byId('statRating');
       if (ratingNode) {
         const card = ratingNode.closest('.quick-stats > div');
         if (card) card.hidden = false;
         const val = stats?.avgRatingFormatted || '5.0';
         ratingNode.innerHTML = `⭐ ${val}`;
+      }
+
+      const satNode = byId('statSatisfaction');
+      if (satNode) {
+        const card = satNode.closest('.quick-stats > div');
+        if (card) card.hidden = false;
+        satNode.innerHTML = `🎯 ${stats?.satisfactionRate || '100%'}`;
+      }
+
+      const freeNode = byId('statFreeOpen');
+      if (freeNode) {
+        const card = freeNode.closest('.quick-stats > div');
+        if (card) card.hidden = false;
+        freeNode.innerHTML = `✨ ${stats?.freeOpenRate || '100%'}`;
       }
 
       const likesNode = byId('statLikes');
@@ -1541,9 +1562,6 @@
         commentsNode.innerHTML = `💬 ${stats?.totalComments ?? 0}`;
       }
 
-      if (byId('statPosts')) {
-        setStat('statPosts', stats?.postsCount ?? 0);
-      }
       if (byId('statDownloads')) {
         setStat('statDownloads', stats?.downloadsCount, formatCompactCount);
       }

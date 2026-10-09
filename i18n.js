@@ -51,7 +51,8 @@ const I18N = (() => {
     'stat.followers': { ar: 'متابعاً', ckb: 'شوێنکەوتوو', en: 'Followers', tr: 'Takipçi' },
     'stat.posts': { ar: 'منشوراً وتحديثاً', ckb: 'پۆست و نوێکاری', en: 'Posts & Updates', tr: 'Gönderi ve Güncelleme' },
     'stat.platforms': { ar: 'منصات مدعومة', ckb: 'پلاتفۆرمی پاڵپشتیکراو', en: 'Supported Platforms', tr: 'Desteklenen Platform' },
-    'stat.satisfaction': { ar: 'نسبة رضا المستخدمين', ckb: 'ڕێژەی ڕەزامەندی', en: 'Satisfaction Rate', tr: 'Memnuniyet Oranı' },
+    'stat.satisfaction': { ar: 'نسبة رضا المستخدمين', ckb: 'ڕێژەی ڕەزامەندی', en: 'User Satisfaction', tr: 'Kullanıcı Memnuniyeti' },
+    'stat.free_open': { ar: 'أدوات مجانية ومفتوحة', ckb: 'ئامرازی بێبەرامبەر و کراوە', en: 'Free & Open Tools', tr: 'Ücretsiz ve Açık Araçlar' },
 
     // Sections
     'home.featured_apps_tag': { ar: 'من مكتب التطوير', ckb: 'لە مێزی گەشەپێدانەوە', en: 'From the Workshop', tr: 'Geliştirme Masasından' },
