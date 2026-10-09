@@ -3,6 +3,7 @@
   "short_name": "مساحة",
   "description": "مساحة شخصية لعرض التطبيقات ومشاركة المنشورات والأفكار وروابط التواصل الاجتماعي.",
   "start_url": "index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f5f6f2",
   "theme_color": "#287452",
@@ -10,10 +11,22 @@
   "lang": "ar",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2064%2064%27%3E%3Crect%20width=%2764%27%20height=%2764%27%20rx=%2716%27%20fill=%27%23287452%27/%3E%3Ctext%20x=%2732%27%20y=%2745%27%20text-anchor=%27middle%27%20font-family=%27Arial%2Csans-serif%27%20font-size=%2740%27%20font-weight=%27700%27%20fill=%27white%27%3E%D9%85%3C/text%3E%3C/svg%3E",
-      "sizes": "192x192 512x512",
-      "type": "image/svg+xml",
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }

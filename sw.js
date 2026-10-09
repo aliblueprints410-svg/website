@@ -1,4 +1,4 @@
-const CACHE_NAME = 'space-cache-v2';
+const CACHE_NAME = 'space-cache-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -8,6 +8,12 @@ const ASSETS = [
   '/post.html',
   '/about.html',
   '/contact.html',
+  '/manifest.json',
+  '/favicon.svg',
+  '/favicon.ico',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
   '/site.css',
   '/i18n.js',
   '/site.js',
