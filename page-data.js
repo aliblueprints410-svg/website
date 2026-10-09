@@ -905,7 +905,9 @@
         const parsed = parseInt(localLikes, 10);
         if (!Number.isNaN(parsed)) {
           if (extraLikes.dbLikesCount !== undefined) {
-            initialLikes = Math.max(extraLikes.dbLikesCount, parsed);
+            initialLikes = extraLikes.dbLikesCount;
+            if (post.slug) localStorage.setItem(`space_likes_${post.slug}`, String(initialLikes));
+            if (post.id) localStorage.setItem(`space_likes_${post.id}`, String(initialLikes));
           } else {
             initialLikes = Math.max(0, parsed);
           }
