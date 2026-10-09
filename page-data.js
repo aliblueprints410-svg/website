@@ -52,13 +52,95 @@
     return value >= 1000 ? `${(value / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(value);
   };
 
+  function renderAppIcon(iconValue, alt = 'أيقونة', className = '') {
+    const isImg = typeof iconValue === 'string' && (
+      iconValue.startsWith('http://') ||
+      iconValue.startsWith('https://') ||
+      iconValue.startsWith('data:image/') ||
+      iconValue.startsWith('/') ||
+      iconValue.startsWith('./')
+    );
+    if (isImg) {
+      const img = document.createElement('img');
+      img.src = iconValue;
+      img.alt = alt;
+      img.loading = 'lazy';
+      if (className) img.className = className;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block;';
+      return img;
+    }
+    const span = document.createElement('span');
+    span.textContent = iconValue || '⚡';
+    return span;
+  }
+
+  function compressImageFile(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          try {
+            const webp = canvas.toDataURL('image/webp', quality);
+            if (webp.startsWith('data:image/webp')) return resolve(webp);
+          } catch(err) {}
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function openScreenshotLightbox(src, alt = '') {
+    let box = byId('screenshotLightbox');
+    if (!box) {
+      box = make('div', 'modal-overlay');
+      box.id = 'screenshotLightbox';
+      box.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);backdrop-filter:blur(6px);z-index:2000;display:none;align-items:center;justify-content:center;padding:16px;';
+      box.innerHTML = `
+        <div style="position:relative;max-width:92vw;max-height:92vh;display:flex;align-items:center;justify-content:center;">
+          <button id="closeLightbox" type="button" style="position:absolute;top:-14px;right:-14px;width:36px;height:36px;border-radius:50%;background:#ef4444;color:white;border:none;font-size:1.1rem;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,0.4);display:grid;place-items:center;z-index:10;">✕</button>
+          <img id="lightboxImg" src="" alt="" style="max-width:90vw;max-height:88vh;object-fit:contain;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+        </div>
+      `;
+      document.body.appendChild(box);
+      const close = () => {
+        box.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        document.documentElement.classList.remove('modal-open');
+      };
+      box.querySelector('#closeLightbox').onclick = close;
+      box.onclick = (e) => { if (e.target === box) close(); };
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && box.style.display === 'flex') close(); });
+    }
+    box.querySelector('#lightboxImg').src = src;
+    box.querySelector('#lightboxImg').alt = alt;
+    box.style.display = 'flex';
+    document.body.classList.add('modal-open');
+    document.documentElement.classList.add('modal-open');
+  }
+
   function openAppEditorModal(existingApp = null) {
     let overlay = byId('appEditModalOverlay');
     if (!overlay) {
       overlay = make('div', 'modal-overlay');
       overlay.id = 'appEditModalOverlay';
       overlay.innerHTML = `
-        <div class="modal-dialog" style="max-width:540px;width:94%;max-height:85vh;overflow-y:auto;overscroll-behavior:contain;padding:22px;display:flex;flex-direction:column;box-sizing:border-box;" role="dialog">
+        <div class="modal-dialog" style="max-width:560px;width:95%;max-height:85vh;overflow-y:auto;overscroll-behavior:contain;padding:22px;display:flex;flex-direction:column;box-sizing:border-box;" role="dialog">
           <div class="modal-header" style="margin-bottom:12px;">
             <h3 id="appModalHeading" style="font-size:1.15rem;">إضافة تطبيق جديد 🚀</h3>
             <button class="modal-close" id="appModalClose" type="button" aria-label="إغلاق">✕</button>
@@ -74,42 +156,72 @@
                 <input type="text" id="appFormSlug" required placeholder="muamalati" dir="ltr">
               </div>
               <div class="form-field">
-                <label>أيقونة التطبيق (رمز أو إيموجي)</label>
-                <input type="text" id="appFormIcon" placeholder="📄 أو ⚡">
-              </div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <div class="form-field">
                 <label>التصنيف</label>
                 <input type="text" id="appFormCategory" placeholder="أدوات / تصميم...">
               </div>
-              <div class="form-field">
-                <label>المنصة الأساسية</label>
-                <select id="appFormPlatform" style="padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface-alt);color:var(--text);font:inherit;">
-                  <option value="android">Android (APK)</option>
-                  <option value="windows">Windows (EXE)</option>
-                  <option value="web">Web / PWA</option>
-                </select>
+            </div>
+
+            <!-- App Icon: Upload / URL / Emoji with Preview -->
+            <div class="form-field">
+              <label>أيقونة التطبيق (رفع صورة أو رابط أو رمز تعبيري)</label>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div id="appFormIconPreview" class="app-icon-preview">⚡</div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:6px;">
+                  <input type="text" id="appFormIcon" placeholder="📄 أو ⚡ أو رابط صورة">
+                  <div style="display:flex;gap:6px;">
+                    <button type="button" class="button secondary" id="appFormIconUploadBtn" style="padding:4px 10px;font-size:0.75rem;">📁 رفع صورة كأيقونة من الجهاز</button>
+                    <input type="file" id="appFormIconFile" accept="image/*" style="display:none;">
+                  </div>
+                </div>
               </div>
             </div>
+
             <div class="form-field">
-              <label>نبذة سريعة *</label>
-              <input type="text" id="appFormSummary" required placeholder="نبذة مختصرة تظهر في بطاقة التطبيق...">
+              <label>نبذة سريعة * (تظهر في بطاقة التطبيق)</label>
+              <input type="text" id="appFormSummary" required placeholder="نبذة مختصرة تصف التطبيق في سطر واحد...">
             </div>
+
             <div class="form-field">
               <label>الوصف المفصل والمميزات</label>
               <textarea id="appFormDesc" rows="3" placeholder="اكتب تفاصيل ومميزات التطبيق هنا..."></textarea>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;">
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
               <div class="form-field">
                 <label>رقم الإصدار</label>
-                <input type="text" id="appFormVersion" placeholder="1.0.0" dir="ltr">
+                <input type="text" id="appFormVersion" placeholder="V 2.1.8" dir="ltr">
               </div>
               <div class="form-field">
-                <label>رابط التحميل المباشر أو الويب</label>
-                <input type="url" id="appFormDownloadUrl" placeholder="https://..." dir="ltr">
+                <label>حجم الملف (اختياري)</label>
+                <input type="text" id="appFormSize" placeholder="مثال: 15 MB" dir="ltr">
               </div>
             </div>
+
+            <!-- Download Links (Drive vs PWA) -->
+            <div class="form-field">
+              <label>رابط تحميل التطبيق (جوجل درايف أو رابط مباشر) 📥</label>
+              <input type="url" id="appFormDownloadUrl" placeholder="https://drive.google.com/... أو رابط مباشر" dir="ltr">
+              <small style="color:var(--muted);font-size:0.75rem;margin-top:2px;">سيظهر للمستخدم زر «تحميل التطبيق الآن» باللون الأخضر المميز.</small>
+            </div>
+
+            <div class="form-field">
+              <label>رابط فتح التطبيق كمتصفح (PWA / Web) 🌐 [اختياري]</label>
+              <input type="url" id="appFormWebUrl" placeholder="https://... رابط التطبيق كمتصفح إن وُجد" dir="ltr">
+              <small style="color:var(--muted);font-size:0.75rem;margin-top:2px;">إذا أضفت رابط المتصفح، سيظهر بجانب زر التحميل زر ثانٍ «فتح التطبيق كمتصفح».</small>
+            </div>
+
+            <!-- Screenshots Gallery Upload -->
+            <div class="form-field">
+              <label>لقطات شاشة من داخل التطبيق (معرض الصور) 📱</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button type="button" class="button secondary" id="appFormScreenshotsUploadBtn" style="padding:6px 12px;font-size:0.78rem;">📁 إضافة صور من الجهاز</button>
+                <input type="file" id="appFormScreenshotsFile" accept="image/*" multiple style="display:none;">
+                <input type="url" id="appFormScreenshotUrlInput" placeholder="أو اكتب رابط صورة مباشر..." style="flex:1;font-size:0.8rem;padding:6px 10px;" dir="ltr">
+                <button type="button" class="button secondary" id="appFormAddScreenshotUrlBtn" style="padding:6px 12px;font-size:0.78rem;">+ إضافة</button>
+              </div>
+              <div class="modal-screenshot-grid" id="appFormScreenshotsPreview"></div>
+            </div>
+
             <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--line);position:sticky;bottom:0;background:var(--surface);display:flex;gap:10px;justify-content:flex-end;z-index:5;">
               <button type="button" class="button secondary" id="appModalCancel" style="padding:8px 16px;">إلغاء</button>
               <button type="submit" class="button primary" id="appModalSubmit" style="padding:8px 18px;">حفظ ونشر التطبيق 💾</button>
@@ -135,12 +247,88 @@
     const nameInput = overlay.querySelector('#appFormName');
     const slugInput = overlay.querySelector('#appFormSlug');
     const iconInput = overlay.querySelector('#appFormIcon');
+    const iconPreview = overlay.querySelector('#appFormIconPreview');
+    const iconFileInput = overlay.querySelector('#appFormIconFile');
+    const iconUploadBtn = overlay.querySelector('#appFormIconUploadBtn');
     const categoryInput = overlay.querySelector('#appFormCategory');
-    const platformInput = overlay.querySelector('#appFormPlatform');
     const summaryInput = overlay.querySelector('#appFormSummary');
     const descInput = overlay.querySelector('#appFormDesc');
     const versionInput = overlay.querySelector('#appFormVersion');
-    const urlInput = overlay.querySelector('#appFormDownloadUrl');
+    const sizeInput = overlay.querySelector('#appFormSize');
+    const dlUrlInput = overlay.querySelector('#appFormDownloadUrl');
+    const webUrlInput = overlay.querySelector('#appFormWebUrl');
+    const screenshotsFileInput = overlay.querySelector('#appFormScreenshotsFile');
+    const screenshotsUploadBtn = overlay.querySelector('#appFormScreenshotsUploadBtn');
+    const screenshotUrlInput = overlay.querySelector('#appFormScreenshotUrlInput');
+    const addScreenshotUrlBtn = overlay.querySelector('#appFormAddScreenshotUrlBtn');
+    const screenshotsPreview = overlay.querySelector('#appFormScreenshotsPreview');
+
+    let currentScreenshots = [];
+
+    const updateIconPreview = (val) => {
+      if (!iconPreview) return;
+      iconPreview.replaceChildren(renderAppIcon(val, nameInput.value.trim() || 'أيقونة'));
+    };
+
+    const renderScreenshotPreviews = () => {
+      if (!screenshotsPreview) return;
+      screenshotsPreview.innerHTML = '';
+      if (currentScreenshots.length === 0) {
+        screenshotsPreview.innerHTML = '<span style="color:var(--muted);font-size:0.75rem;padding:6px;">لم تُضف صور بعد.</span>';
+        return;
+      }
+      currentScreenshots.forEach((item, idx) => {
+        const src = typeof item === 'string' ? item : item?.src;
+        if (!src) return;
+        const thumb = make('div', 'modal-screenshot-thumb');
+        const img = document.createElement('img');
+        img.src = src;
+        const del = make('button', 'modal-screenshot-del', '✕');
+        del.type = 'button';
+        del.onclick = (e) => {
+          e.stopPropagation();
+          currentScreenshots.splice(idx, 1);
+          renderScreenshotPreviews();
+        };
+        thumb.append(img, del);
+        screenshotsPreview.append(thumb);
+      });
+    };
+
+    // Wire Icon File Upload
+    iconUploadBtn.onclick = () => iconFileInput.click();
+    iconFileInput.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const dataUrl = await compressImageFile(file, 256, 256, 0.85);
+        iconInput.value = dataUrl;
+        updateIconPreview(dataUrl);
+      } catch(err) {
+        notify('تعذّر قراءة ملف الصورة');
+      }
+    };
+    iconInput.oninput = () => updateIconPreview(iconInput.value.trim());
+
+    // Wire Screenshots File Upload
+    screenshotsUploadBtn.onclick = () => screenshotsFileInput.click();
+    screenshotsFileInput.onchange = async (e) => {
+      const files = Array.from(e.target.files || []);
+      for (const file of files) {
+        try {
+          const dataUrl = await compressImageFile(file, 1200, 1600, 0.75);
+          currentScreenshots.push({ src: dataUrl, alt: nameInput.value.trim() || 'لقطة شاشة' });
+        } catch(err) {}
+      }
+      renderScreenshotPreviews();
+    };
+    addScreenshotUrlBtn.onclick = () => {
+      const url = screenshotUrlInput.value.trim();
+      if (!url) return;
+      currentScreenshots.push({ src: url, alt: nameInput.value.trim() || 'لقطة شاشة' });
+      screenshotUrlInput.value = '';
+      renderScreenshotPreviews();
+    };
 
     if (existingApp) {
       heading.textContent = `تعديل تطبيق: ${existingApp.name || ''} ✏️`;
@@ -148,21 +336,34 @@
       slugInput.value = existingApp.slug || '';
       slugInput.disabled = true;
       iconInput.value = existingApp.icon || '';
+      updateIconPreview(existingApp.icon || '⚡');
       categoryInput.value = existingApp.category || 'أدوات';
       summaryInput.value = existingApp.summary || '';
       descInput.value = existingApp.description || existingApp.catalogDescription || '';
-      const release = latestRelease(existingApp);
-      platformInput.value = release?.platform || 'android';
-      versionInput.value = release?.version && release.version !== '[نص مؤقت]' ? release.version : '1.0.0';
-      urlInput.value = release?.downloadUrl || release?.download_url || '';
+
+      const releases = safeArray(existingApp.releases);
+      const dlRel = releases.find(r => r.downloadUrl && r.format !== 'pwa' && r.platform !== 'web')
+        || releases.find(r => r.downloadUrl && !r.downloadUrl.includes('web'));
+      const webRel = releases.find(r => r.downloadUrl && (r.format === 'pwa' || r.platform === 'web'));
+
+      versionInput.value = dlRel?.version || webRel?.version || existingApp.version || '1.0.0';
+      if (versionInput.value === '[نص مؤقت]') versionInput.value = '1.0.0';
+      sizeInput.value = dlRel?.fileSizeLabel || '';
+      dlUrlInput.value = dlRel?.downloadUrl || dlRel?.download_url || '';
+      webUrlInput.value = webRel?.downloadUrl || webRel?.download_url || '';
+
+      currentScreenshots = safeArray(existingApp.screenshots).map(s => typeof s === 'string' ? { src: s } : s);
+      renderScreenshotPreviews();
     } else {
       heading.textContent = 'إضافة تطبيق جديد 🚀';
       form.reset();
       slugInput.disabled = false;
       categoryInput.value = 'أدوات';
       iconInput.value = '⚡';
-      platformInput.value = 'android';
+      updateIconPreview('⚡');
       versionInput.value = '1.0.0';
+      currentScreenshots = [];
+      renderScreenshotPreviews();
     }
 
     form.onsubmit = async (e) => {
@@ -185,6 +386,7 @@
           summary: summaryInput.value.trim(),
           description: descInput.value.trim(),
           catalog_description: summaryInput.value.trim(),
+          screenshots: currentScreenshots,
           status: 'published',
           is_demo: false
         };
@@ -210,24 +412,57 @@
           notify('تم نشر التطبيق الجديد بنجاح! 🚀');
         }
 
-        const v = versionInput.value.trim();
-        const dl = urlInput.value.trim();
-        if (savedApp?.id && (v || dl)) {
+        const v = versionInput.value.trim() || '1.0.0';
+        const dl = dlUrlInput.value.trim();
+        const web = webUrlInput.value.trim();
+        const sz = sizeInput.value.trim();
+
+        if (savedApp?.id) {
           try {
-            const plat = platformInput.value || 'android';
-            const fmt = plat === 'android' ? 'apk' : plat === 'windows' ? 'exe' : 'pwa';
-            const relData = {
-              app_id: savedApp.id,
-              version: v || '1.0.0',
-              platform: plat,
-              format: fmt,
-              download_url: dl || null
-            };
-            const { data: existingRels } = await client.from('releases').select('id').eq('app_id', savedApp.id).limit(1);
-            if (existingRels && existingRels.length > 0) {
-              await client.from('releases').update(relData).eq('id', existingRels[0].id);
-            } else {
-              await client.from('releases').insert([relData]);
+            const { data: existingRels } = await client.from('releases').select('*').eq('app_id', savedApp.id);
+            const currentDlRel = existingRels?.find(r => r.format !== 'pwa' && r.platform !== 'web');
+            const currentWebRel = existingRels?.find(r => r.format === 'pwa' || r.platform === 'web');
+
+            // 1. Sync Download Release (e.g. Google Drive / APK)
+            if (dl) {
+              const relData = {
+                app_id: savedApp.id,
+                version: v,
+                platform: 'android',
+                format: dl.includes('drive.google.com') ? 'drive' : 'apk',
+                download_url: dl
+              };
+              if (currentDlRel) {
+                await client.from('releases').update(relData).eq('id', currentDlRel.id);
+              } else {
+                await client.from('releases').insert([relData]);
+              }
+            } else if (currentDlRel) {
+              await client.from('releases').update({ download_url: null }).eq('id', currentDlRel.id);
+            }
+
+            // 2. Sync Web/PWA Release
+            if (web) {
+              const webRelData = {
+                app_id: savedApp.id,
+                version: v,
+                platform: 'web',
+                format: 'pwa',
+                download_url: web
+              };
+              if (currentWebRel) {
+                await client.from('releases').update(webRelData).eq('id', currentWebRel.id);
+              } else {
+                await client.from('releases').insert([webRelData]);
+              }
+            } else if (currentWebRel) {
+              await client.from('releases').update({ download_url: null }).eq('id', currentWebRel.id);
+            }
+
+            // 3. Clean up any dummy placeholder releases
+            const dummyRels = existingRels?.filter(r => r.version === '[نص مؤقت]' && r.id !== currentDlRel?.id && r.id !== currentWebRel?.id) || [];
+            for (const d of dummyRels) {
+              await client.from('releases').delete().eq('id', d.id).catch(() => {});
             }
           } catch (relErr) {
             console.warn('Releases sync notice:', relErr);
@@ -280,8 +515,15 @@
     const heading = make('div', compact ? 'app-heading' : 'app-heading');
     const category = typeof app.category === 'string' ? app.category : '';
     const variation = category.includes('أدوات') ? ' violet' : category.includes('تصميم') ? ' peach' : '';
-    heading.append(make('span', `app-symbol${variation}`, app.icon || ''));
-    heading.append(make('span', 'pill', getPlatformLabel(release)));
+    const symbolSpan = make('span', `app-symbol${variation}`);
+    symbolSpan.append(renderAppIcon(app.icon, app.name));
+    heading.append(symbolSpan);
+
+    let platLabel = getPlatformLabel(release);
+    if (!platLabel && release?.downloadUrl) {
+      platLabel = release.downloadUrl.includes('drive.google.com') ? 'Google Drive' : 'تحميل مباشر';
+    }
+    if (platLabel) heading.append(make('span', 'pill', platLabel));
     article.append(heading);
     appendAppBadge(article, app);
 
@@ -297,9 +539,11 @@
 
     if (!compact) {
       const meta = make('div', 'card-meta');
-      meta.append(make('span', '', release?.version ? `الإصدار ${release.version}` : ''));
-      meta.append(make('span', '', release?.fileSizeLabel || ''));
-      meta.append(make('span', '', release?.catalogMetaLabel || ''));
+      if (release?.version && release.version !== '[نص مؤقت]') {
+        meta.append(make('span', '', `الإصدار ${release.version}`));
+      }
+      if (release?.fileSizeLabel) meta.append(make('span', '', release.fileSizeLabel));
+      if (release?.catalogMetaLabel) meta.append(make('span', '', release.catalogMetaLabel));
       article.append(meta);
 
       // Developer in-place controls
@@ -540,14 +784,16 @@
     const detailLayout = byId('detailLayout');
     if (!detailHero || !detailLayout) return;
 
-    setText('detailIcon', app.icon || '');
+    const detailIcon = byId('detailIcon');
+    if (detailIcon) detailIcon.replaceChildren(renderAppIcon(app.icon, app.name));
+
     setText('detailPlatform', '');
     setText('detailCategory', app.category ? `التصنيف: ${app.category}` : '');
     setText('detailTitle', app.name || '');
     setText('crumbApp', app.name || 'التفاصيل');
     setText('detailSummary', app.summary || '');
     setText('detailDescription', app.description || '');
-    setText('specPrice', app.priceLabel || '');
+    setText('specPrice', app.priceLabel || 'مجاني');
     setText('detailDemoBadge', app.status === 'preview' ? 'معاينة' : 'بيانات تجريبية');
     setHidden('detailDemoBadge', app.status !== 'preview' && app.isDemo !== true);
     document.title = `${app.name || 'تفاصيل التطبيق'} — مساحة`;
@@ -560,131 +806,162 @@
       privacyPanel.hidden = !(typeof app.privacyNote === 'string' && app.privacyNote.trim());
       setText('privacyNote', app.privacyNote || '');
     }
+
+    // Screenshots Gallery with Lightbox
     const screenshots = safeArray(app.screenshots);
     const screenshotPanel = byId('screenshotsPanel');
     const gallery = byId('screenshotGallery');
     if (screenshotPanel && gallery) {
       gallery.replaceChildren();
-      screenshots.forEach(item => {
-        if (!item || typeof item.src !== 'string' || !item.src) return;
-        const figure = make('figure', 'screenshot-item');
-        const image = document.createElement('img');
-        image.src = item.src;
-        image.alt = typeof item.alt === 'string' && item.alt ? item.alt : (app.name || 'لقطة شاشة');
-        image.loading = 'lazy';
-        figure.append(image);
-        appendDemoBadge(figure, item);
-        gallery.append(figure);
-      });
-      if (gallery.childElementCount === 0) {
-        gallery.append(make('div', 'screenshot-placeholder', 'عنصر نائب — لا توجد لقطات شاشة بعد.'));
+      if (screenshots.length > 0) {
+        screenshots.forEach(item => {
+          const src = typeof item === 'string' ? item : item?.src;
+          if (!src) return;
+          const figure = make('figure', 'screenshot-item');
+          const image = document.createElement('img');
+          image.src = src;
+          image.alt = (typeof item === 'object' && item?.alt) ? item.alt : (app.name || 'لقطة شاشة');
+          image.loading = 'lazy';
+          image.onclick = () => openScreenshotLightbox(src, image.alt);
+          figure.append(image);
+          gallery.append(figure);
+        });
+        screenshotPanel.hidden = false;
+      } else {
+        if (window.isOwner) {
+          screenshotPanel.hidden = false;
+          const hint = make('div', 'screenshot-placeholder', 'لا توجد لقطات شاشة بعد. اضغط على «تعديل بيانات التطبيق» لإرفاق صور من داخل التطبيق 📱');
+          hint.style.cursor = 'pointer';
+          hint.onclick = () => openAppEditorModal(app);
+          gallery.append(hint);
+        } else {
+          screenshotPanel.hidden = true;
+        }
       }
-      screenshotPanel.hidden = false;
     }
 
-    const releases = safeArray(app.releases);
+    // Filter valid releases (ignore placeholder dummy entries)
+    const releases = safeArray(app.releases).filter(r => r.downloadUrl || (r.version && r.version !== '[نص مؤقت]'));
+    const dlRel = releases.find(r => r.downloadUrl && r.format !== 'pwa' && r.platform !== 'web')
+      || releases.find(r => r.downloadUrl && !r.downloadUrl.includes('web') && r.format !== 'pwa')
+      || (releases.length === 1 && releases[0].downloadUrl ? releases[0] : null);
+    const webRel = releases.find(r => r.downloadUrl && (r.format === 'pwa' || r.platform === 'web' || r.format === 'html'));
+
+    // Dynamic Action Buttons: Drive Download and/or Web PWA
+    const buttonsContainer = byId('detailButtonsContainer') || detailHero.querySelector('.detail-buttons');
+    if (buttonsContainer) {
+      buttonsContainer.replaceChildren();
+
+      if (dlRel?.downloadUrl) {
+        const dlBtn = make('a', 'button primary', 'تحميل التطبيق الآن ');
+        dlBtn.id = 'downloadButton';
+        dlBtn.href = dlRel.downloadUrl;
+        dlBtn.target = '_blank';
+        dlBtn.rel = 'noopener noreferrer';
+        dlBtn.append(make('span', '', '↓'));
+        buttonsContainer.append(dlBtn);
+      }
+
+      if (webRel?.downloadUrl) {
+        const webBtn = make('a', 'button secondary', 'فتح التطبيق كمتصفح ');
+        webBtn.id = 'webAppButton';
+        webBtn.href = webRel.downloadUrl;
+        webBtn.target = '_blank';
+        webBtn.rel = 'noopener noreferrer';
+        webBtn.append(make('span', '', '↗'));
+        buttonsContainer.append(webBtn);
+      }
+
+      if (!dlRel?.downloadUrl && !webRel?.downloadUrl) {
+        const emptyBtn = make('button', 'button primary', 'الرابط غير متاح حالياً');
+        emptyBtn.disabled = true;
+        buttonsContainer.append(emptyBtn);
+      }
+
+      const backLink = make('a', 'button', 'العودة للتطبيقات');
+      backLink.href = 'apps.html';
+      backLink.style.cssText = 'background:var(--surface-alt);border:1px solid var(--line);color:var(--text);';
+      buttonsContainer.append(backLink);
+    }
+
+    // Sidebar Specs (Clean without dummy [نص مؤقت] values)
+    const activeRel = dlRel || webRel || releases[0];
+    const hasDrive = Boolean(dlRel?.downloadUrl?.includes('drive.google.com') || activeRel?.downloadUrl?.includes('drive.google.com'));
+    const hasWeb = Boolean(webRel?.downloadUrl);
+    const hasDl = Boolean(dlRel?.downloadUrl);
+
+    let platText = 'متعدد المنصات';
+    if (hasDl && hasWeb) platText = 'أندرويد و ويب';
+    else if (hasDl) platText = 'أندرويد';
+    else if (hasWeb) platText = 'ويب (متصفح)';
+    else if (activeRel?.platform) platText = platformNames[activeRel.platform] || activeRel.platform;
+
+    let formatText = 'مباشر';
+    if (hasDrive) formatText = 'Google Drive';
+    else if (hasWeb && !hasDl) formatText = 'PWA / ويب';
+    else if (activeRel?.format) formatText = formatNames[activeRel.format] || activeRel.format;
+
+    const verText = (activeRel?.version && activeRel.version !== '[نص مؤقت]') ? activeRel.version : (app.version || '1.0.0');
+
+    setText('specPlatform', platText);
+    setText('specFormat', formatText);
+    setText('specVersion', verText);
+    setText('specSize', activeRel?.fileSizeLabel || '—');
+    setText('specPrice', app.priceLabel || 'مجاني');
+
+    const unavailableNotice = byId('downloadUnavailable');
+    const hasAnyLink = Boolean(dlRel?.downloadUrl || webRel?.downloadUrl);
+    if (unavailableNotice) {
+      const noticeCard = unavailableNotice.closest('.notice') || unavailableNotice.parentElement;
+      if (noticeCard) noticeCard.hidden = hasAnyLink;
+    }
+
+    // Releases List: show only real, clean releases
+    const releasePanel = byId('releasePanel');
     const releaseList = byId('releaseList');
-    setHidden('releaseSelectionHint', releases.length <= 1);
-    const checksumMessage = 'تعذّر نسخ البصمة.';
-    const renderChecksum = (container, release) => {
-      if (typeof release?.checksum !== 'string' || !release.checksum.trim()) return;
-      const checksumRow = make('div', 'release-checksum');
-      checksumRow.append(make('span', 'overline', 'البصمة الرقمية'));
-      const value = make('code', '', release.checksum);
-      const copy = make('button', 'checksum-copy', 'نسخ البصمة');
-      copy.type = 'button';
-      copy.setAttribute('aria-label', `نسخ بصمة الإصدار ${release.version || ''}`.trim());
-      copy.addEventListener('click', async () => {
-        try {
-          if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
-          await navigator.clipboard.writeText(release.checksum);
-          notify('تم نسخ البصمة.');
-        } catch (error) {
-          notify(checksumMessage);
-        }
-      });
-      checksumRow.append(value, copy);
-      container.append(checksumRow);
-    };
-    const selectRelease = index => {
-      const release = releases[index] || null;
-      setText('specPlatform', release ? (platformNames[release.platform] || release.platform || '') : '');
-      setText('specFormat', release ? (formatNames[release.format] || release.format || '') : '');
-      setText('specVersion', release?.version || '');
-      setText('specSize', release?.fileSizeLabel || '');
-      setText('detailPlatform', getPlatformLabel(release));
-
-      const releaseCards = releaseList?.querySelectorAll('.release-card') || [];
-      releaseCards.forEach((card, cardIndex) => {
-        card.classList.toggle('selected', cardIndex === index);
-        const option = card.querySelector('.release-option[aria-pressed]');
-        if (option) option.setAttribute('aria-pressed', String(cardIndex === index));
-      });
-
-      const downloadButton = byId('downloadButton');
-      const unavailableNotice = byId('downloadUnavailable');
-      let safeDownloadUrl = null;
-      if (typeof release?.downloadUrl === 'string' && release.downloadUrl.trim()) {
-        try {
-          const url = new URL(release.downloadUrl, location.href);
-          if (url.protocol === 'https:' || url.protocol === 'http:') safeDownloadUrl = url.href;
-        } catch (error) {}
-      }
-      if (downloadButton) {
-        const isWeb = release?.format === 'pwa' || release?.format === 'html' || release?.platform === 'web' || release?.platform === 'Web';
-        const tryText = typeof I18N !== 'undefined' ? I18N.t('app.try_online', 'جرّب الآن في المتصفح ↗') : 'جرّب الآن في المتصفح ↗';
-        const dlPrefix = typeof I18N !== 'undefined' ? I18N.t('app.download', 'تحميل') : 'تحميل';
-        downloadButton.replaceChildren(
-          document.createTextNode(isWeb ? tryText : `${dlPrefix} ${formatNames[release?.format] || release?.format || ''} `),
-          make('span', '', isWeb ? '↗' : '↓')
-        );
-        downloadButton.disabled = !safeDownloadUrl;
-        downloadButton.onclick = safeDownloadUrl ? (e) => {
-          if (isWeb && typeof window.openAppRunner === 'function') {
-            e.preventDefault();
-            window.openAppRunner(safeDownloadUrl, app.name || 'تطبيق ويب');
-          } else {
-            location.assign(safeDownloadUrl);
-          }
-        } : null;
-        if (safeDownloadUrl) downloadButton.removeAttribute('aria-describedby');
-        else downloadButton.setAttribute('aria-describedby', 'downloadUnavailable');
-      }
-      if (unavailableNotice) unavailableNotice.hidden = Boolean(safeDownloadUrl);
-    };
-
     if (releaseList) {
       releaseList.replaceChildren();
-      if (!releases.length) {
-        releaseList.append(make('p', 'release-empty', 'لا تتوفر إصدارات لهذا التطبيق.'));
-      }
-      releases.forEach((release, index) => {
-        const card = make('article', `release-card${index === 0 ? ' selected' : ''}`);
-        const option = make(releases.length > 1 ? 'button' : 'div', 'release-option');
-        if (releases.length > 1) {
-          option.type = 'button';
-          option.setAttribute('aria-pressed', String(index === 0));
-          option.addEventListener('click', () => selectRelease(index));
-        }
-        const platform = platformNames[release.platform] || release.platform || '';
-        const format = formatNames[release.format] || release.format || '';
-        const details = make('span', 'release-meta');
-        details.append(make('span', '', `${platform} · ${format}`.trim()));
-        details.append(make('span', '', release.version ? `الإصدار ${release.version}` : ''));
-        details.append(make('span', '', release.fileSizeLabel || ''));
-        option.append(details);
-        appendDemoBadge(option, release);
-        card.append(option);
+      if (releases.length === 0) {
+        if (releasePanel) releasePanel.hidden = true;
+      } else {
+        if (releasePanel) releasePanel.hidden = false;
+        releases.forEach((release) => {
+          const card = make('article', 'release-card selected');
+          const option = make('div', 'release-option');
+          const isDrive = release.downloadUrl?.includes('drive.google.com');
+          const isWeb = release.format === 'pwa' || release.platform === 'web';
+          const platLabel = isWeb ? 'نسخة المتصفح (PWA)' : (isDrive ? 'أندرويد (Google Drive)' : (platformNames[release.platform] || release.platform || 'تطبيق'));
 
-        const changelog = make('div', 'release-changelog');
-        changelog.append(make('span', 'overline', `سجل التغييرات${release.version ? ` — الإصدار ${release.version}` : ''}`));
-        changelog.append(make('p', '', typeof release.changelog === 'string' && release.changelog.trim() ? release.changelog : 'لا يوجد سجل تغييرات لهذا الإصدار.'));
-        card.append(changelog);
-        renderChecksum(card, release);
-        releaseList.append(card);
-      });
+          const details = make('span', 'release-meta');
+          details.append(make('span', '', platLabel));
+          if (release.version && release.version !== '[نص مؤقت]') {
+            details.append(make('span', '', `الإصدار ${release.version}`));
+          }
+          if (release.fileSizeLabel) details.append(make('span', '', release.fileSizeLabel));
+          option.append(details);
+
+          if (release.downloadUrl) {
+            const actionLink = make('a', 'button secondary', isWeb ? 'فتح ↗' : 'تحميل ↓');
+            actionLink.href = release.downloadUrl;
+            actionLink.target = '_blank';
+            actionLink.rel = 'noopener noreferrer';
+            actionLink.style.cssText = 'padding:4px 12px;font-size:0.75rem;';
+            option.append(actionLink);
+          }
+          card.append(option);
+
+          if (release.changelog && release.changelog !== '[نص مؤقت]') {
+            const changelog = make('div', 'release-changelog');
+            changelog.append(make('span', 'overline', 'سجل التغييرات'));
+            changelog.append(make('p', '', release.changelog));
+            card.append(changelog);
+          }
+          releaseList.append(card);
+        });
+      }
     }
-    // Setup Star Rating Selection & Reviews
+
+    // Setup Star Rating Selection & Reviews (100% Real Reviews, No Fake Sample Reviews)
     const starPicker = byId('starRatingSelect');
     const starInput = byId('selectedStar');
     const reviewForm = byId('reviewForm');
@@ -702,21 +979,41 @@
       });
     }
 
-    const sampleReviews = [
-      { name: 'أحمد السعدي', stars: 5, date: 'منذ يومين', text: 'تطبيق رائع وسلس جداً، وتجربة الاستخدام نظيفة ومريحة.' },
-      { name: 'سارة خالد', stars: 5, date: 'منذ أسبوع', text: 'أعجبني الاهتمام بالتفاصيل والسرعة العالية. بانتظار التحديث القادم!' }
-    ];
-
     const renderReviewCard = r => {
       const card = make('div', 'review-item');
       const head = make('div', 'review-item-header');
       const usr = make('div', 'review-user');
-      const av = make('div', 'review-avatar', (r.name || 'ع').charAt(0));
-      usr.append(av, document.createTextNode(r.name));
-      const st = make('div', 'review-stars', '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars));
+      const userName = r.user_name || r.name || 'زائر';
+      const isDev = Boolean(r.isOwner || userName.includes('👑') || userName.includes('المطور'));
+      const av = make('div', 'review-avatar', isDev ? '👑' : userName.charAt(0));
+      usr.append(av, document.createTextNode(userName));
+      const stars = Number(r.rating || r.stars || 5);
+      const st = make('div', 'review-stars', '★'.repeat(stars) + '☆'.repeat(Math.max(0, 5 - stars)));
       head.append(usr, st);
-      const txt = make('p', 'review-text', r.text);
-      const dt = make('span', 'review-date', r.date);
+
+      if (window.isOwner && r.id) {
+        const delBtn = make('button', '', '🗑️');
+        delBtn.type = 'button';
+        delBtn.title = 'حذف هذا التقييم';
+        delBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:0.85rem;color:#ef4444;margin-inline-start:auto;padding:2px 6px;';
+        delBtn.onclick = async () => {
+          if (!confirm('حذف هذا التقييم نهائياً؟')) return;
+          try {
+            if (globalThis.SpaceBackend?.client && r.id) {
+              await globalThis.SpaceBackend.client.from('app_reviews').delete().eq('id', r.id);
+            }
+            card.remove();
+            notify('تم حذف التقييم 🗑️');
+            fetchAppReviews();
+          } catch(err) {
+            notify('تعذّر حذف التقييم');
+          }
+        };
+        head.append(delBtn);
+      }
+
+      const txt = make('p', 'review-text', r.review_text || r.text || '');
+      const dt = make('span', 'review-date', r.created_at ? formatFullDate(r.created_at) : (r.date || 'مؤخراً'));
       card.append(head, txt, dt);
       return card;
     };
@@ -729,19 +1026,31 @@
           .select('*')
           .eq('app_id', app.id)
           .order('created_at', { ascending: false });
-        if (!error && Array.isArray(data) && data.length > 0) {
-          reviewsList.replaceChildren(...data.map(r => renderReviewCard({
-            name: r.user_name || 'زائر',
-            stars: r.rating || 5,
-            date: r.created_at ? formatDate(r.created_at) : 'مؤخراً',
-            text: r.review_text
-          })));
+
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+          reviewsList.innerHTML = '<div style="text-align:center;padding:24px 10px;color:var(--muted);font-size:0.86rem;">لا توجد تقييمات أو مراجعات بعد. كن أول من يقيّم التطبيق! ⭐</div>';
+          setText('ratingAvg', '—');
+          setText('ratingStarsView', '☆☆☆☆☆');
+          setText('ratingCount', '(لا يوجد تقييم بعد)');
+          return;
         }
-      } catch (err) {}
+
+        const sum = data.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+        const avg = (sum / data.length).toFixed(1);
+        const roundAvg = Math.round(Number(avg));
+        setText('ratingAvg', avg);
+        setText('ratingStarsView', '★'.repeat(roundAvg) + '☆'.repeat(Math.max(0, 5 - roundAvg)));
+        setText('ratingCount', `(${data.length} ${data.length === 1 ? 'تقييم' : 'تقييمات'})`);
+
+        reviewsList.replaceChildren(...data.map(renderReviewCard));
+      } catch (err) {
+        console.warn('Reviews fetch:', err);
+      }
     };
 
     if (reviewsList) {
-      reviewsList.replaceChildren(...sampleReviews.map(renderReviewCard));
       fetchAppReviews();
     }
 
@@ -753,43 +1062,35 @@
         if (!text) return;
 
         let authorName = 'زائر';
-        try {
-          const sessionStr = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
-          if (sessionStr) {
-            const parsed = JSON.parse(localStorage.getItem(sessionStr) || '{}');
-            if (parsed?.user?.user_metadata?.full_name) {
-              authorName = parsed.user.user_metadata.full_name;
-            } else if (parsed?.user?.email) {
-              authorName = parsed.user.email.split('@')[0];
-            }
-          }
-        } catch(err) {}
+        if (window.isOwner) {
+          authorName = '👑 علي محمد (المطور)';
+        } else {
+          try {
+            const session = await globalThis.SpaceBackend?.client?.auth?.getSession();
+            const u = session?.data?.session?.user;
+            if (u) authorName = u.user_metadata?.full_name || u.email?.split('@')[0] || 'عضو';
+          } catch(err) {}
+        }
 
         const newReview = {
-          name: authorName,
-          stars: Number(starInput?.value || 5),
-          date: 'الآن',
-          text
+          app_id: app.id,
+          user_name: authorName,
+          rating: Number(starInput?.value || 5),
+          review_text: text,
+          created_at: new Date().toISOString()
         };
-        sampleReviews.unshift(newReview);
-        reviewsList?.prepend(renderReviewCard(newReview));
+
         commentInput.value = '';
-        notify('شكراً لتقييمك! أُضيفت مراجعتك بنجاح.');
+        notify('شكراً لتقييمك! أُضيفت مراجعتك بنجاح. ⭐');
 
         if (globalThis.SpaceBackend?.client && app?.id) {
           try {
-            await globalThis.SpaceBackend.client.from('app_reviews').insert({
-              app_id: app.id,
-              user_name: authorName,
-              rating: newReview.stars,
-              review_text: text
-            });
+            await globalThis.SpaceBackend.client.from('app_reviews').insert([newReview]);
+            fetchAppReviews();
           } catch(err) {}
         }
       };
     }
-
-    selectRelease(0);
 
     detailHero.hidden = false;
     detailLayout.hidden = false;

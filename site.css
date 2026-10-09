@@ -432,4 +432,101 @@ html.modal-open, body.modal-open {
   transform: scale(1.15);
 }
 
+/* App Icons (Image / Emoji) */
+.app-symbol img, .detail-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+
+/* Detail Buttons */
+.detail-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Screenshots Gallery Item */
+.screenshot-item img {
+  cursor: zoom-in;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.screenshot-item img:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+/* Modal Screenshot Thumbnails */
+.modal-screenshot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  max-height: 130px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.modal-screenshot-thumb {
+  position: relative;
+  width: 65px;
+  height: 95px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--surface-alt);
+  flex-shrink: 0;
+}
+.modal-screenshot-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.modal-screenshot-del {
+  position: absolute;
+  top: 3px;
+  inset-inline-end: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.92);
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+.modal-screenshot-del:hover {
+  transform: scale(1.15);
+  background: #dc2626;
+}
+
+/* Icon Preview Box in Modal */
+.app-icon-preview {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 14px;
+  background: var(--green-pale);
+  color: var(--green);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  overflow: hidden;
+}
+.app-icon-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+
 

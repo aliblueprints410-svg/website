@@ -54,18 +54,21 @@ const isRlsFixture = row => rlsFixtureSlugs.has(row?.slug)
 
 function mapRelease(row) {
   const size = firstValue(row, 'file_size_bytes', 'fileSizeBytes');
+  const v = firstValue(row, 'version');
+  const dl = firstValue(row, 'download_url', 'downloadUrl');
+  const ch = firstValue(row, 'changelog');
   return {
     id: firstValue(row, 'id', 'slug'),
     appId: firstValue(row, 'app_id', 'appId'),
-    platform: firstValue(row, 'platform'),
-    format: firstValue(row, 'format'),
-    version: firstValue(row, 'version'),
+    platform: firstValue(row, 'platform') || 'android',
+    format: firstValue(row, 'format') || 'apk',
+    version: (v && v !== '[نص مؤقت]') ? v : '',
     fileSizeBytes: size,
     fileSizeLabel: firstValue(row, 'file_size_label', 'fileSizeLabel')
       || (Number.isFinite(Number(size)) && size !== null ? `${(Number(size) / 1048576).toFixed(1)} MB` : ''),
-    downloadUrl: firstValue(row, 'download_url', 'downloadUrl'),
+    downloadUrl: (dl && dl !== '#' && !dl.includes('placeholder')) ? dl : null,
     publishedAt: firstValue(row, 'published_at', 'publishedAt'),
-    changelog: firstValue(row, 'changelog'),
+    changelog: (ch && ch !== '[نص مؤقت]') ? ch : '',
     checksum: firstValue(row, 'checksum'),
     isDemo: row?.is_demo === true
   };
@@ -136,9 +139,19 @@ async function fetchPublicApps() {
   (Array.isArray(releases) ? releases : []).forEach(release => {
     const key = String(firstValue(release, 'app_id', 'appId'));
     if (!byApp.has(key)) byApp.set(key, []);
-    byApp.get(key).push(mapRelease(release));
+    const mapped = mapRelease(release);
+    if (mapped.downloadUrl || (mapped.version && mapped.version !== '[نص مؤقت]')) {
+      byApp.get(key).push(mapped);
+    }
   });
-  return apps.map(app => mapApp(app, byApp.get(String(app.id)) || []))
+  return apps.map(app => {
+    const appReleases = (byApp.get(String(app.id)) || []).sort((a, b) => {
+      if (a.downloadUrl && !b.downloadUrl) return -1;
+      if (!a.downloadUrl && b.downloadUrl) return 1;
+      return 0;
+    });
+    return mapApp(app, appReleases);
+  })
     .sort((a, b) => Number(b.featured) - Number(a.featured)
       || (Date.parse(b.updatedAt || b.createdAt) || 0) - (Date.parse(a.updatedAt || a.createdAt) || 0));
 }
