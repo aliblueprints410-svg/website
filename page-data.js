@@ -1518,13 +1518,7 @@
       };
 
       setStat('statApps', stats?.appsCount ?? 0);
-
-      const postsNode = byId('statPosts');
-      if (postsNode) {
-        const card = postsNode.closest('.quick-stats > div');
-        if (card) card.hidden = false;
-        postsNode.innerHTML = `📝 ${stats?.postsCount ?? 0}`;
-      }
+      setStat('statPosts', stats?.postsCount ?? 0);
 
       const ratingNode = byId('statRating');
       if (ratingNode) {
