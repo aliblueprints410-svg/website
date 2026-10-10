@@ -55,6 +55,12 @@
             ${navItems.map(([url, key, fallback]) => `
               <a href="${url}" class="${currentFile === url ? 'active' : ''}" data-i18n="${key}">${typeof I18N !== 'undefined' ? I18N.t(key, fallback) : fallback}</a>
             `).join('')}
+            <div class="mobile-nav-user" id="mobileNavUser">
+              <button class="mobile-user-action" id="mobileUserBtn" type="button">
+                <span class="user-avatar-badge" id="mobileUserBadge" style="display:none"></span>
+                <span id="mobileUserLabel" data-i18n="nav.signin">${typeof I18N !== 'undefined' ? I18N.t('nav.signin', 'تسجيل الدخول') : 'تسجيل الدخول'}</span>
+              </button>
+            </div>
           </nav>
           <div class="nav-actions">
             <!-- Language Switcher -->
@@ -77,7 +83,10 @@
             </button>
 
             <!-- User Sign In / Profile Button -->
-            <button class="user-btn" id="userAuthBtn" type="button">
+            <button class="user-btn" id="userAuthBtn" type="button" aria-label="تسجيل الدخول">
+              <span class="user-icon-default" id="userIconDefault">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+              </span>
               <span class="user-avatar-badge" id="userBadge" style="display:none"></span>
               <span id="userAuthLabel" data-i18n="nav.signin">${typeof I18N !== 'undefined' ? I18N.t('nav.signin', 'تسجيل الدخول') : 'تسجيل الدخول'}</span>
             </button>
@@ -122,8 +131,23 @@
     } catch (error) {}
   });
 
-  document.getElementById('menuButton')?.addEventListener('click', () => {
-    document.getElementById('navLinks')?.classList.toggle('open');
+  const menuBtn = document.getElementById('menuButton');
+  const navLinksNode = document.getElementById('navLinks');
+  menuBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    navLinksNode?.classList.toggle('open');
+  });
+
+  navLinksNode?.addEventListener('click', (e) => {
+    if (e.target.closest('a') || e.target.closest('#mobileUserBtn')) {
+      navLinksNode?.classList.remove('open');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!navLinksNode?.contains(e.target) && !menuBtn?.contains(e.target)) {
+      navLinksNode?.classList.remove('open');
+    }
   });
 
   // --- Language Dropdown Logic ---
@@ -226,6 +250,10 @@
     const btn = document.getElementById('userAuthBtn');
     const badge = document.getElementById('userBadge');
     const label = document.getElementById('userAuthLabel');
+    const iconDefault = document.getElementById('userIconDefault');
+    const mobBtn = document.getElementById('mobileUserBtn');
+    const mobBadge = document.getElementById('mobileUserBadge');
+    const mobLabel = document.getElementById('mobileUserLabel');
     const navLinks = document.getElementById('navLinks');
     let ownerAdminLink = document.getElementById('ownerAdminNavItem');
     if (ownerAdminLink) ownerAdminLink.remove();
@@ -233,6 +261,7 @@
     if (oldBanner) oldBanner.remove();
 
     if (currentUser && isOwner) {
+      if (iconDefault) iconDefault.style.display = 'none';
       if (badge) {
         badge.textContent = '👑';
         badge.style.display = 'grid';
@@ -242,6 +271,16 @@
       if (label) {
         label.textContent = 'علي محمد (المطور)';
         label.removeAttribute('data-i18n');
+      }
+      if (mobBadge) {
+        mobBadge.textContent = '👑';
+        mobBadge.style.display = 'grid';
+        mobBadge.style.background = 'linear-gradient(135deg, #10b981, #047857)';
+        mobBadge.style.color = '#fff';
+      }
+      if (mobLabel) {
+        mobLabel.textContent = 'علي محمد (المطور) — تسجيل الخروج';
+        mobLabel.removeAttribute('data-i18n');
       }
       if (btn) {
         btn.title = 'حساب المطور — انقر لتسجيل الخروج';
@@ -257,6 +296,7 @@
     } else if (currentUser) {
       const name = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'عضو';
       const initial = name.charAt(0).toUpperCase();
+      if (iconDefault) iconDefault.style.display = 'none';
       if (badge) {
         badge.textContent = initial;
         badge.style.display = 'grid';
@@ -266,6 +306,16 @@
       if (label) {
         label.textContent = name;
         label.removeAttribute('data-i18n');
+      }
+      if (mobBadge) {
+        mobBadge.textContent = initial;
+        mobBadge.style.display = 'grid';
+        mobBadge.style.background = '';
+        mobBadge.style.color = '';
+      }
+      if (mobLabel) {
+        mobLabel.textContent = `${name} — تسجيل الخروج`;
+        mobLabel.removeAttribute('data-i18n');
       }
       if (btn) {
         btn.title = 'انقر لتسجيل الخروج';
@@ -278,10 +328,17 @@
       const banner = document.getElementById('ownerAppActionBanner');
       if (banner) banner.remove();
     } else {
+      if (iconDefault) iconDefault.style.display = 'inline-grid';
       if (badge) badge.style.display = 'none';
+      if (mobBadge) mobBadge.style.display = 'none';
+      const signinText = typeof I18N !== 'undefined' ? I18N.t('nav.signin', 'تسجيل الدخول') : 'تسجيل الدخول';
       if (label) {
-        label.textContent = typeof I18N !== 'undefined' ? I18N.t('nav.signin', 'تسجيل الدخول') : 'تسجيل الدخول';
+        label.textContent = signinText;
         label.setAttribute('data-i18n', 'nav.signin');
+      }
+      if (mobLabel) {
+        mobLabel.textContent = signinText;
+        mobLabel.setAttribute('data-i18n', 'nav.signin');
       }
       if (btn) {
         btn.title = '';
@@ -411,7 +468,7 @@
   window.openAuthModal = openAuthModal;
   window.closeAuthModal = closeAuthModal;
 
-  document.getElementById('userAuthBtn')?.addEventListener('click', async () => {
+  const handleAuthAction = async () => {
     if (currentUser) {
       if (confirm('هل تريد تسجيل الخروج؟')) {
         const client = globalThis.SpaceBackend?.client;
@@ -423,7 +480,10 @@
     } else {
       openAuthModal();
     }
-  });
+  };
+
+  document.getElementById('userAuthBtn')?.addEventListener('click', handleAuthAction);
+  document.getElementById('mobileUserBtn')?.addEventListener('click', handleAuthAction);
 
   // --- Live Web / PWA App Runner Modal ---
   function ensureRunnerModal() {
