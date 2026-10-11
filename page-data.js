@@ -276,32 +276,44 @@
               <small style="color:var(--muted);font-size:0.75rem;">تظهر هذه النقاط مرتبة في قسم «المزايا والتقنيات» داخل صفحة التطبيق.</small>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-              <div class="form-field">
-                <label>رقم الإصدار</label>
-                <input type="text" id="appFormVersion" placeholder="2.1.8" dir="ltr">
+            <!-- Release & Download Links Box (App Update) -->
+            <div style="background:var(--surface-alt);padding:14px;border-radius:12px;border:1px solid var(--line);display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:1.1rem;">🚀</span>
+                <strong style="color:var(--green);font-size:0.88rem;">بيانات الإصدار وروابط التحميل (تحديث التطبيق)</strong>
               </div>
-              <div class="form-field">
-                <label>حجم الملف</label>
-                <input type="text" id="appFormSize" placeholder="15 MB" dir="ltr">
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div class="form-field">
+                  <label>رقم الإصدار (Version) *</label>
+                  <input type="text" id="appFormVersion" placeholder="مثال: 1.1.0 أو 2.0.0" dir="ltr" required>
+                </div>
+                <div class="form-field">
+                  <label>حجم الملف (Size)</label>
+                  <input type="text" id="appFormSize" placeholder="مثال: 15 MB" dir="ltr">
+                </div>
+                <div class="form-field">
+                  <label>الترخيص</label>
+                  <input type="text" id="appFormPrice" placeholder="مجاني" value="مجاني">
+                </div>
               </div>
-              <div class="form-field">
-                <label>الترخيص</label>
-                <input type="text" id="appFormPrice" placeholder="مجاني" value="مجاني">
-              </div>
-            </div>
 
-            <!-- Download Links (Drive vs PWA) -->
-            <div class="form-field">
-              <label>رابط تحميل التطبيق المباشر (جوجل درايف أو رابط مباشر) 📥</label>
-              <input type="url" id="appFormDownloadUrl" placeholder="https://drive.google.com/... أو رابط مباشر" dir="ltr">
-              <small style="color:var(--muted);font-size:0.75rem;">سيظهر للمستخدم زر «تحميل التطبيق الآن» باللون الأخضر المميز.</small>
-            </div>
+              <div class="form-field">
+                <label>رابط تحميل التطبيق / التحديث الجديد 📥 *</label>
+                <input type="url" id="appFormDownloadUrl" placeholder="https://drive.google.com/... رابط التحميل المباشر أو Google Drive" dir="ltr">
+                <small style="color:var(--muted);font-size:0.75rem;">ارفع ملف التطبيق الجديد (APK أو ملف التثبيت) على Google Drive أو MediaFire وضع الرابط هنا، وسيتحدث زر التحميل في الموقع فوراً.</small>
+              </div>
 
-            <div class="form-field">
-              <label>رابط فتح التطبيق كمتصفح (PWA / Web) 🌐 [اختياري]</label>
-              <input type="url" id="appFormWebUrl" placeholder="https://... رابط المتصفح إن وُجد" dir="ltr">
-              <small style="color:var(--muted);font-size:0.75rem;">إذا أضفت رابط المتصفح، سيظهر بجانب زر التحميل زر ثانٍ «فتح التطبيق كمتصفح».</small>
+              <div class="form-field">
+                <label>رابط فتح التطبيق كمتصفح (PWA / Web) 🌐 [اختياري]</label>
+                <input type="url" id="appFormWebUrl" placeholder="https://... رابط المتصفح إن وُجد" dir="ltr">
+                <small style="color:var(--muted);font-size:0.75rem;">إذا أضفت رابط المتصفح، سيظهر بجانب زر التحميل زر ثانٍ «فتح التطبيق كمتصفح».</small>
+              </div>
+
+              <div class="form-field">
+                <label>ما الجديد في هذا التحديث؟ (سجل التغييرات / Changelog) 📝</label>
+                <textarea id="appFormChangelog" rows="2" placeholder="اكتب ميزات وتحسينات التحديث الجديد، مثال:&#10;• إصلاح مشكلة الطباعة في أندرويد 14&#10;• تسريع معالجة المستندات بنسبة 50%&#10;• إضافة ميزة الحفظ التلقائي"></textarea>
+                <small style="color:var(--muted);font-size:0.75rem;">تظهر هذه الملاحظات للزوار تحت قسم «سجل التغييرات» في صفحة التطبيق.</small>
+              </div>
             </div>
 
             <!-- Privacy Note -->
@@ -361,6 +373,7 @@
     const privacyInput = overlay.querySelector('#appFormPrivacy');
     const dlUrlInput = overlay.querySelector('#appFormDownloadUrl');
     const webUrlInput = overlay.querySelector('#appFormWebUrl');
+    const changelogInput = overlay.querySelector('#appFormChangelog');
     const screenshotsFileInput = overlay.querySelector('#appFormScreenshotsFile');
     const screenshotsUploadBtn = overlay.querySelector('#appFormScreenshotsUploadBtn');
     const screenshotUrlInput = overlay.querySelector('#appFormScreenshotUrlInput');
@@ -481,7 +494,7 @@
     });
 
     if (existingApp) {
-      heading.textContent = `تعديل تطبيق: ${existingApp.name || ''} ✏️`;
+      heading.textContent = `تحديث وتعديل تطبيق: ${existingApp.name || ''} 🚀`;
       nameInput.value = existingApp.name || '';
       slugInput.value = existingApp.slug || '';
       slugInput.disabled = true;
@@ -516,6 +529,11 @@
       sizeInput.value = existingApp.fileSizeLabel || dlRel?.fileSizeLabel || '';
       dlUrlInput.value = existingApp.downloadUrl || dlRel?.downloadUrl || dlRel?.download_url || '';
       webUrlInput.value = existingApp.webUrl || webRel?.downloadUrl || webRel?.download_url || '';
+      const currentCh = dlRel?.changelog || webRel?.changelog || releases[0]?.changelog || '';
+      if (changelogInput) changelogInput.value = currentCh !== '[نص مؤقت]' ? currentCh : '';
+
+      const submitBtn = overlay.querySelector('#appModalSubmit');
+      if (submitBtn) submitBtn.textContent = 'حفظ ونشر التحديث 💾';
 
       const parseItem = globalThis.parseScreenshotItem || ((x) => typeof x === 'string' ? { src: x } : x);
       currentScreenshots = safeArray(existingApp.screenshots).map(s => parseItem(s, existingApp.name)).filter(Boolean);
@@ -532,6 +550,9 @@
       versionInput.value = '1.0.0';
       priceInput.value = 'مجاني';
       platformCheckboxes.forEach(cb => { cb.checked = cb.value === 'android' || cb.value === 'windows'; });
+      if (changelogInput) changelogInput.value = '';
+      const submitBtn = overlay.querySelector('#appModalSubmit');
+      if (submitBtn) submitBtn.textContent = 'حفظ ونشر التطبيق 💾';
       currentScreenshots = [];
       renderScreenshotPreviews();
     }
@@ -558,6 +579,7 @@
         const prc = priceInput.value.trim() || 'مجاني';
         const priv = privacyInput.value.trim();
         const feats = featuresInput.value.split('\n').map(s => s.trim()).filter(Boolean);
+        const ch = changelogInput?.value.trim() || null;
 
         const appTags = [
           ...selectedPlatforms,
@@ -592,12 +614,12 @@
           const { data, error } = await client.from('apps').update(appData).eq('id', targetId).select();
           if (error) throw error;
           savedApp = data?.[0] || { id: targetId, slug: appData.slug };
-          notify('تم تحديث بيانات التطبيق بنجاح! ✅');
+          notify('تم حفظ ونشر تحديث التطبيق بنجاح! 🚀');
         } else if (existingApp?.slug) {
           const { data, error } = await client.from('apps').update(appData).eq('slug', existingApp.slug).select();
           if (error) throw error;
           savedApp = data?.[0] || { slug: targetSlug };
-          notify('تم تحديث بيانات التطبيق بنجاح! ✅');
+          notify('تم حفظ ونشر تحديث التطبيق بنجاح! 🚀');
         } else {
           const { data, error } = await client.from('apps').insert([appData]).select();
           if (error) throw error;
@@ -618,7 +640,8 @@
                 version: v,
                 platform: selectedPlatforms.includes('android') ? 'android' : selectedPlatforms[0],
                 format: dl.includes('drive.google.com') ? 'drive' : 'apk',
-                download_url: dl
+                download_url: dl,
+                changelog: ch
               };
               if (currentDlRel) {
                 await client.from('releases').update(relData).eq('id', currentDlRel.id);
@@ -636,7 +659,8 @@
                 version: v,
                 platform: 'web',
                 format: 'pwa',
-                download_url: web
+                download_url: web,
+                changelog: ch
               };
               if (currentWebRel) {
                 await client.from('releases').update(webRelData).eq('id', currentWebRel.id);
@@ -784,9 +808,9 @@
       // Developer in-place controls
       const devBar = make('div', 'app-dev-actions');
       devBar.style.cssText = 'display:none;gap:8px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);justify-content:flex-end;';
-      const editBtn = make('button', 'button secondary', '✏️ تعديل');
+      const editBtn = make('button', 'button secondary', '🚀 تحديث وتعديل');
       editBtn.type = 'button';
-      editBtn.style.cssText = 'padding:4px 10px;font-size:0.75rem;';
+      editBtn.style.cssText = 'padding:5px 12px;font-size:0.76rem;font-weight:600;';
       editBtn.onclick = (e) => { e.preventDefault(); openAppEditorModal(app); };
 
       const deleteBtn = make('button', 'button secondary', '🗑️ حذف');
@@ -1838,8 +1862,9 @@
         const devActions = make('div', 'dev-hero-actions');
         devActions.id = 'devDetailActions';
         devActions.style.cssText = 'display:none;gap:10px;margin-top:14px;flex-wrap:wrap;';
-        const editBtn = make('button', 'button secondary', '✏️ تعديل بيانات التطبيق');
+        const editBtn = make('button', 'button primary', '🚀 تحديث التطبيق / تعديل البيانات');
         editBtn.type = 'button';
+        editBtn.style.cssText = 'padding:10px 20px;font-size:0.88rem;font-weight:700;';
         editBtn.onclick = () => openAppEditorModal(app);
         const delBtn = make('button', 'button secondary', '🗑️ حذف هذا التطبيق');
         delBtn.type = 'button';
